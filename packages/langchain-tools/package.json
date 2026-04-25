@@ -1,0 +1,52 @@
+{
+  "name": "@keeperhub/langchain",
+  "version": "0.1.0",
+  "description": "KeeperHub tools for LangChain — use onchain workflow automation inside any LangChain agent",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "keeperhub-sdk": "workspace:*",
+    "zod": "^3.22.0"
+  },
+  "peerDependencies": {
+    "@langchain/core": ">=0.2.0 || >=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/core": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@langchain/core": "^1.0.0",
+    "@types/node": "^24",
+    "tsup": "^8.0.0",
+    "typescript": "^5",
+    "zod": "^3.22.0"
+  },
+  "keywords": [
+    "langchain",
+    "keeperhub",
+    "tool",
+    "onchain",
+    "workflow",
+    "automation",
+    "ai-agent",
+    "web3"
+  ]
+}

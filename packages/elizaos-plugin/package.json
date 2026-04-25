@@ -1,0 +1,50 @@
+{
+  "name": "@keeperhub/elizaos",
+  "version": "0.1.0",
+  "description": "KeeperHub plugin for ElizaOS — onchain workflow automation for AI agents",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "keeperhub-sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@elizaos/core": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@elizaos/core": "^0.1.9",
+    "@types/node": "^24",
+    "tsup": "^8.0.0",
+    "typescript": "^5"
+  },
+  "keywords": [
+    "elizaos",
+    "keeperhub",
+    "plugin",
+    "onchain",
+    "workflow",
+    "automation",
+    "ai-agent",
+    "web3"
+  ]
+}
