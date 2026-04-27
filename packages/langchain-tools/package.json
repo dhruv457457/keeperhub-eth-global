@@ -21,7 +21,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "keeperhub-sdk": "workspace:*",
+    "keeperhub-sdk": "file:../sdk",
     "zod": "^3.22.0"
   },
   "peerDependencies": {
