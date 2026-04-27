@@ -1,13 +1,26 @@
 import type { Plugin } from "@elizaos/core";
 import { KeeperHub } from "keeperhub-sdk";
 import type { KeeperHubConfig } from "keeperhub-sdk";
+import { createCheckAndExecuteAction } from "./actions/check-and-execute.js";
 import { createCheckExecutionAction } from "./actions/check-execution.js";
+import { createContractReadAction } from "./actions/contract-read.js";
 import type { ExecuteWorkflowActionOptions } from "./actions/execute-workflow.js";
 import { createExecuteWorkflowAction } from "./actions/execute-workflow.js";
+import { createEstimateGasAction } from "./actions/estimate-gas.js";
 import type { GenerateWorkflowActionOptions } from "./actions/generate-workflow.js";
 import { createGenerateWorkflowAction } from "./actions/generate-workflow.js";
+import { createListChainsAction } from "./actions/list-chains.js";
 import { createListWorkflowsAction } from "./actions/list-workflows.js";
+import { createChainlinkCcipAction } from "./actions/chainlink-ccip.js";
+import { createNotifyAction } from "./actions/notify.js";
+import { createPayAndRunAction } from "./actions/pay-and-run.js";
+import { createProtocolActionElizaAction } from "./actions/protocol-action.js";
+import { createRunCodeAction } from "./actions/run-code.js";
+import { createActionSchemaAction } from "./actions/action-schema.js";
+import { createWorkflowVersionAction, createWorkflowMigrateAction } from "./actions/workflow-version.js";
 import { createRegisterAgentAction } from "./actions/register-agent.js";
+import { createTransferAction } from "./actions/transfer.js";
+import { createExecutionSuccessEvaluator } from "./evaluators/execution-success.js";
 import { createWalletProvider } from "./providers/wallet-provider.js";
 import { createWorkflowsProvider } from "./providers/workflows-provider.js";
 
@@ -23,6 +36,21 @@ export interface KeeperHubPluginOptions extends KeeperHubConfig {
    * @default true
    */
   enableWorkflowsProvider?: boolean;
+
+  /**
+   * Whether to include direct web3 actions (transfer, contract read, gas estimate,
+   * check-and-execute, list chains). Disable if you only want workflow actions.
+   * @default true
+   */
+  enableWeb3Actions?: boolean;
+
+  /**
+   * Whether to include the execution success evaluator.
+   * The evaluator polls execution IDs found in conversation and stores outcomes
+   * in agent memory for accurate follow-up answers.
+   * @default true
+   */
+  enableExecutionEvaluator?: boolean;
 
   /**
    * Allowlist of workflow IDs that the agent is permitted to execute.
@@ -74,6 +102,8 @@ export function createKeeperHubPlugin(
   const {
     enableWalletProvider = true,
     enableWorkflowsProvider = true,
+    enableWeb3Actions = true,
+    enableExecutionEvaluator = true,
     allowedWorkflowIds,
     ...config
   } = options;
@@ -94,12 +124,31 @@ export function createKeeperHubPlugin(
     allowedWorkflowIds: allowedIds,
   };
 
+  // ── Workflow actions (always included) ─────────────────────────────────────
   const actions = [
     createListWorkflowsAction(kh),
     createExecuteWorkflowAction(kh, executeOptions),
     createGenerateWorkflowAction(kh, generateOptions),
     createCheckExecutionAction(kh),
     createRegisterAgentAction(kh),
+    // ── Direct web3 actions (opt-out with enableWeb3Actions: false) ─────────
+    ...(enableWeb3Actions
+      ? [
+          createListChainsAction(kh),
+          createTransferAction(kh),
+          createContractReadAction(kh),
+          createEstimateGasAction(kh),
+          createCheckAndExecuteAction(kh),
+          createProtocolActionElizaAction(kh),
+          createPayAndRunAction(kh),
+          createNotifyAction(kh),
+          createChainlinkCcipAction(kh),
+          createRunCodeAction(kh),
+          createActionSchemaAction(kh),
+          createWorkflowVersionAction(kh),
+          createWorkflowMigrateAction(kh),
+        ]
+      : []),
   ];
 
   const providers = [
@@ -107,13 +156,18 @@ export function createKeeperHubPlugin(
     enableWalletProvider ? createWalletProvider(kh) : null,
   ].filter((p): p is NonNullable<typeof p> => p !== null);
 
+  const evaluators = enableExecutionEvaluator
+    ? [createExecutionSuccessEvaluator(kh)]
+    : [];
+
   return {
     name: "@keeperhub/elizaos",
     description:
-      "KeeperHub integration for ElizaOS — onchain workflow automation, agent identity (ERC-8004), and DeFi protocol actions",
+      "KeeperHub integration for ElizaOS — onchain workflow automation, direct web3 actions, " +
+      "agent identity (ERC-8004), and DeFi protocol execution",
     actions,
     providers,
-    evaluators: [],
+    evaluators,
     services: [],
   };
 }

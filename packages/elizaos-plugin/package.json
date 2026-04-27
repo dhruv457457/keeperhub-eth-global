@@ -21,7 +21,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "keeperhub-sdk": "workspace:*"
+    "keeperhub-sdk": "file:../sdk"
   },
   "peerDependencies": {
     "@elizaos/core": ">=0.1.0"
