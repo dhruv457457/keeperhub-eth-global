@@ -279,6 +279,13 @@ export interface PaymentResolverContext {
   input: Record<string, unknown>;
   challenge: PaymentChallenge;
   headers: Record<string, string>;
+  /**
+   * Which payment protocol the server is requesting.
+   * "x402" — Base USDC, EIP-3009 TransferWithAuthorization
+   * "mpp"  — Tempo USDC.e (chain 4217), near-instant, preferred by KeeperHub
+   * "unknown" — could not detect from headers, treat as x402 for compatibility
+   */
+  protocol: "x402" | "mpp" | "unknown";
 }
 
 export interface PaymentExecutionOptions {

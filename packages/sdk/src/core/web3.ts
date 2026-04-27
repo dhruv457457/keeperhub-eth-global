@@ -121,12 +121,12 @@ export class Web3Module {
   async estimateGas(
     params: ContractCallParams | ContractReadParams
   ): Promise<GasEstimate> {
-    return this.client.request<GasEstimate>("GET", "/api/gas/estimate", {
-      query: {
-        network: params.network,
-        contract: params.contract,
-        function: params.function,
-        args: params.args ? JSON.stringify(params.args) : undefined,
+    return this.client.request<GasEstimate>("POST", "/api/gas/estimate", {
+      body: {
+        actionSlug: "write-contract",
+        contractAddress: params.contract,
+        abiFunction: params.function,
+        functionArgs: params.args ? JSON.stringify(params.args) : undefined,
       },
     });
   }
@@ -146,6 +146,11 @@ export class Web3Module {
   /**
    * Swap tokens via the configured DEX aggregator.
    */
+  /**
+   * @deprecated Token swaps via the KeeperHub API are not yet available (endpoint returns 501).
+   * Use a KeeperHub workflow with a swap step instead:
+   * `await kh.pipeline().generate("Swap ${params.amount} ETH for USDC on Base").wait()`
+   */
   async swap(params: {
     network: string;
     tokenIn: string;
@@ -153,9 +158,10 @@ export class Web3Module {
     amount: string;
     slippage?: number;
   }): Promise<DirectExecution> {
-    return this.client.request<DirectExecution>("POST", "/api/execute/swap", {
-      body: params,
-    });
+    throw new Error(
+      "kh.web3.swap() is not yet available — the KeeperHub swap endpoint is coming soon. " +
+      "Use kh.pipeline().generate('Swap X for Y on network') to execute swaps via AI-generated workflows."
+    );
   }
 
   /**
