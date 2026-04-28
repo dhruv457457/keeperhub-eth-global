@@ -120,15 +120,18 @@ class WalletBalanceTool(BaseTool):
 
     async def _arun(self, chain_id: int | None = None) -> str:  # type: ignore[override]
         try:
-            params: dict = {}
-            if chain_id:
-                params["chainId"] = chain_id
+            # /api/user/wallet/balances returns 500 (server Prometheus bug)
+            # Use /api/user/wallet for wallet info + /api/user/wallet/tokens for token list
+            wallet = await self.client.get("/api/user/wallet")  # type: ignore[attr-defined]
+            wallet_addr = wallet.get("walletAddress") if isinstance(wallet, dict) else None
 
-            balances = await self.client.get("/api/user/wallet/balances", **params)  # type: ignore[attr-defined]
-            wallet = await self.client.get("/api/user/wallet/active")  # type: ignore[attr-defined]
-
-            bal_list = balances if isinstance(balances, list) else []
-            wallet_addr = wallet.get("address") if isinstance(wallet, dict) else None
+            # Get token list (may be empty but doesn't crash)
+            bal_list: list = []
+            try:
+                tokens_resp = await self.client.get("/api/user/wallet/tokens")  # type: ignore[attr-defined]
+                bal_list = tokens_resp.get("tokens", []) if isinstance(tokens_resp, dict) else []
+            except Exception:
+                pass  # tokens endpoint may be empty
 
             # Find USDC balances for payment readiness
             usdc_base = next(

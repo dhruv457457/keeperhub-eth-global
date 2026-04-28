@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
 
 class _PayAndRunInput(BaseModel):
-    workflow_id: str = Field(description="Workflow ID (wf_xxx) from keeperhub_list_workflows")
+    workflow_id: Optional[str] = Field(default=None, description="Owned workflow ID from keeperhub_list_workflows")
+    listed_slug: Optional[str] = Field(default=None, description="Public listed workflow slug from the x402/MPP catalog, e.g. 'microtip'")
     input: Optional[dict[str, Any]] = Field(default=None, description="Runtime inputs for the workflow")
     max_budget_usd: str = Field(default="1.00", description="Maximum USDC budget for this call (default $1.00)")
     prefer_mpp: bool = Field(default=True, description="Prefer MPP (Tempo USDC.e, cheaper) over x402 (Base USDC)")
@@ -38,12 +39,49 @@ class PayAndRunTool(BaseTool):
 
     async def _arun(  # type: ignore[override]
         self,
-        workflow_id: str,
+        workflow_id: str | None = None,
+        listed_slug: str | None = None,
         input: dict[str, Any] | None = None,
         max_budget_usd: str = "1.00",
         prefer_mpp: bool = True,
     ) -> str:
         try:
+            if listed_slug:
+                try:
+                    result = await self.client.post(  # type: ignore[attr-defined]
+                        f"/api/mcp/workflows/{listed_slug}/call",
+                        json=input or {},
+                    )
+                    r = result if isinstance(result, dict) else {}
+                    return json.dumps({
+                        "ok": True,
+                        "summary": f"Listed workflow {listed_slug} executed.",
+                        "execution_id": r.get("executionId"),
+                        "status": r.get("status"),
+                        "output": r.get("output"),
+                    })
+                except Exception as e:
+                    response = getattr(e, "response", None)
+                    if getattr(response, "status_code", None) == 402:
+                        headers = dict(getattr(response, "headers", {}))
+                        www_auth = headers.get("www-authenticate", "")
+                        protocol = "MPP" if ("method=\"tempo\"" in www_auth or www_auth.lower().startswith("mpp")) else "x402"
+                        return json.dumps({
+                            "ok": False,
+                            "payment_required": True,
+                            "protocol": protocol,
+                            "has_mpp_header": bool(www_auth),
+                            "has_x402_header": bool(headers.get("x-payment-requirements")),
+                            "hint": "Payment challenge received. Use an x402/MPP payment resolver to sign and retry.",
+                        })
+                    raise
+
+            if not workflow_id:
+                return json.dumps({
+                    "ok": False,
+                    "error": "Provide workflow_id or listed_slug.",
+                })
+
             # Start execution with payment
             result = await self.client.post(  # type: ignore[attr-defined]
                 f"/api/workflow/{workflow_id}/execute",

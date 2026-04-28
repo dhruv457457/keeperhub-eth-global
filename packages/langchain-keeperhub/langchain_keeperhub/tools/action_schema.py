@@ -42,34 +42,28 @@ class GetActionSchemaTool(BaseTool):
 
     async def _arun(self, action_type: str) -> str:  # type: ignore[override]
         try:
-            # Search for specific action
-            schemas = await self.client.get("/api/mcp/schemas", q=action_type)  # type: ignore[attr-defined]
+            # API returns { actions: { "code/run-code": {...}, "aave-v3/supply": {...} } }
+            response = await self.client.get("/api/mcp/schemas")  # type: ignore[attr-defined]
 
             schema = None
-            if isinstance(schemas, list):
-                # Exact match first
-                schema = next(
-                    (s for s in schemas
-                     if isinstance(s, dict) and (
-                         s.get("actionType") == action_type or
-                         s.get("type") == action_type
-                     )),
-                    None
-                )
-                # Fuzzy match fallback
-                if not schema:
-                    schema = next(
-                        (s for s in schemas
-                         if isinstance(s, dict) and
-                         action_type.lower() in str(s.get("actionType", "")).lower()),
-                        None
-                    )
+            if isinstance(response, dict):
+                all_actions = response.get("actions", {})
+                # Exact match
+                if action_type in all_actions:
+                    schema = all_actions[action_type]
+                    schema = {**schema, "actionType": action_type}
+                else:
+                    # Fuzzy match
+                    for key, val in all_actions.items():
+                        if action_type.lower() in key.lower():
+                            schema = {**val, "actionType": key}
+                            break
 
             if not schema:
                 return json.dumps({
                     "ok": False,
                     "error": f"Action '{action_type}' not found.",
-                    "hint": "Use keeperhub_search_actions to discover valid action types.",
+                    "hint": "Use keeperhub_search_actions to browse all 396 available actions.",
                 })
 
             return json.dumps({
@@ -82,7 +76,7 @@ class GetActionSchemaTool(BaseTool):
                 "required_fields": schema.get("requiredFields", {}),
                 "optional_fields": schema.get("optionalFields", {}),
                 "output_fields": schema.get("outputFields", {}),
-                "hint": f"Call keeperhub_protocol_action with action_type='{action_type}' and required_fields above.",
+                "hint": f"Call keeperhub_protocol_action with action_type='{action_type}' and required_fields as config.",
             })
         except Exception as e:
             return json.dumps({"ok": False, "error": str(e)})
@@ -115,29 +109,44 @@ class SearchActionsTool(BaseTool):
 
     async def _arun(self, query: str, category: str | None = None, limit: int = 10) -> str:  # type: ignore[override]
         try:
-            params: dict = {"q": query}
-            if category:
-                params["category"] = category
+            # API returns { actions: { "actionType": schema, ... } } — not a list
+            response = await self.client.get("/api/mcp/schemas")  # type: ignore[attr-defined]
 
-            schemas = await self.client.get("/api/mcp/schemas", **params)  # type: ignore[attr-defined]
-            results = schemas[:limit] if isinstance(schemas, list) else []
+            if not isinstance(response, dict):
+                return json.dumps({"ok": False, "error": "Unexpected response format"})
+
+            all_actions = response.get("actions", {})
+            q = query.lower()
+            cat = category.lower() if category else None
+
+            results = []
+            for action_type, schema in all_actions.items():
+                if not isinstance(schema, dict):
+                    continue
+                # Category filter
+                if cat and cat not in schema.get("category", "").lower():
+                    continue
+                # Keyword filter
+                if q not in action_type.lower() and q not in schema.get("label", "").lower() and q not in schema.get("description", "").lower():
+                    continue
+                results.append({
+                    "action_type": action_type,
+                    "label": schema.get("label"),
+                    "category": schema.get("category"),
+                    "description": schema.get("description"),
+                    "required_fields": schema.get("requiredFields", {}),
+                    "requires_credentials": schema.get("requiresCredentials"),
+                })
+                if len(results) >= limit:
+                    break
 
             return json.dumps({
                 "ok": True,
                 "query": query,
-                "total_found": len(schemas) if isinstance(schemas, list) else 0,
-                "results": [
-                    {
-                        "action_type": s.get("actionType"),
-                        "label": s.get("label"),
-                        "category": s.get("category"),
-                        "description": s.get("description"),
-                        "required_fields": s.get("requiredFields", {}),
-                        "requires_credentials": s.get("requiresCredentials"),
-                    }
-                    for s in results if isinstance(s, dict)
-                ],
-                "hint": "Use keeperhub_get_action_schema for full details on a specific action.",
+                "total_available": len(all_actions),
+                "total_found": len(results),
+                "results": results,
+                "hint": "Use keeperhub_get_action_schema for full details. Use keeperhub_protocol_action with action_type and config to execute.",
             })
         except Exception as e:
             return json.dumps({"ok": False, "error": str(e)})

@@ -41,6 +41,11 @@ from langchain_keeperhub.tools.workflow_migrate import (
     WorkflowMigrateTool,
     WorkflowVersionTool,
 )
+from langchain_keeperhub.tools.ens import (
+    EnsLookupTool,
+    EnsResolveTool,
+    EnsTextRecordTool,
+)
 
 __all__ = [
     # Chain & contract
@@ -83,4 +88,8 @@ __all__ = [
     "WorkflowVersionTool",
     "WorkflowMigrateTool",
     "PublishWorkflowTool",
+    # ENS
+    "EnsResolveTool",
+    "EnsTextRecordTool",
+    "EnsLookupTool",
 ]

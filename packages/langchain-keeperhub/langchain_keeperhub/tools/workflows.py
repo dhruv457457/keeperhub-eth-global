@@ -278,14 +278,35 @@ class GetExecutionStatusTool(BaseTool):
 
     async def _arun(self, execution_id: str, include_logs: bool = False) -> str:  # type: ignore[override]
         try:
-            status = await self.client.get(  # type: ignore[attr-defined]
-                f"/api/workflows/executions/{execution_id}/status"
-            )
+            # Try workflow execution first, then direct execution (transfer/contract call)
+            status = None
+            is_direct = False
+            try:
+                status = await self.client.get(  # type: ignore[attr-defined]
+                    f"/api/workflows/executions/{execution_id}/status"
+                )
+            except Exception as first_err:
+                if "404" in str(first_err) or "not found" in str(first_err).lower():
+                    # Try direct execution endpoint (used by transfer, contract write)
+                    try:
+                        status = await self.client.get(  # type: ignore[attr-defined]
+                            f"/api/execute/{execution_id}/status"
+                        )
+                        is_direct = True
+                    except Exception:
+                        raise first_err  # re-raise original error
+                else:
+                    raise
+
             result: dict[str, Any] = {
                 "execution_id": execution_id,
                 "status": status.get("status"),
                 "progress": status.get("progress"),
-                "error": status.get("errorContext", {}).get("error") if status.get("errorContext") else None,
+                "tx_hash": status.get("transactionHash") or status.get("txHash"),
+                "tx_link": status.get("transactionLink"),
+                "type": status.get("type"),  # "transfer", "contract-call", etc.
+                "is_direct_execution": is_direct,
+                "error": status.get("errorContext", {}).get("error") if status.get("errorContext") else status.get("error"),
                 "failed_node_id": status.get("errorContext", {}).get("failedNodeId") if status.get("errorContext") else None,
             }
 

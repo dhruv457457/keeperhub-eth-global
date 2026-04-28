@@ -40,9 +40,14 @@ class TransferFundsTool(BaseTool):
 
     async def _arun(self, network: str, to: str, amount: str, token: str | None = None) -> str:  # type: ignore[override]
         try:
-            body: dict[str, Any] = {"network": network, "to": to, "amount": amount}
+            # SDK uses recipientAddress + tokenAddress (not to/token)
+            body: dict[str, Any] = {
+                "network": network,
+                "recipientAddress": to,
+                "amount": amount,
+            }
             if token:
-                body["token"] = token
+                body["tokenAddress"] = token
             result = await self.client.post("/api/execute/transfer", json=body)  # type: ignore[attr-defined]
             return json.dumps({
                 "ok": True,
@@ -112,7 +117,7 @@ class ContractCallTool(BaseTool):
                 "functionName": function,
             }
             if args:
-                body["functionArgs"] = args
+                body["functionArgs"] = json.dumps(args)
             if abi:
                 body["abi"] = abi
             if call_type == "write" and gas_limit_multiplier:
@@ -201,11 +206,11 @@ class CheckAndExecuteTool(BaseTool):
                 },
             }
             if check_args:
-                body["check"]["args"] = check_args
+                body["check"]["args"] = json.dumps(check_args)
             if check_abi:
                 body["check"]["abi"] = check_abi
             if action_args:
-                body["action"]["args"] = action_args
+                body["action"]["args"] = json.dumps(action_args)
             if action_abi:
                 body["action"]["abi"] = action_abi
 

@@ -1,573 +1,418 @@
-# SKILLS — langchain-keeperhub
+# langchain-keeperhub — Agent Skills Reference
 
-> **Machine-readable capability manifest.**
-> This file tells AI agents what this toolkit can do, which tools to call for each task,
-> and how to interpret results. If you are an AI agent reading this file, follow the
-> decision tree below before choosing tools.
-
----
-
-## Package identity
-
-```
-package:  langchain-keeperhub
-version:  0.1.0
-language: Python ≥ 3.10
-base_url: https://app.keeperhub.com
-auth:     Bearer token (KEEPERHUB_API_KEY)
-pattern:  async-only (_arun), never-throws (always returns JSON string)
-```
+> **For AI assistants (Copilot, Cursor, Claude, etc.):**
+> Read this before writing any Python code that uses `langchain-keeperhub`.
+> Complete reference — 32 tools across 10 files.
 
 ---
 
-## Quick-start for agents
+## Install & setup
 
 ```python
-from langchain_keeperhub import KeeperHubToolkit
+pip install langchain-keeperhub
 
-toolkit = KeeperHubToolkit()          # reads KEEPERHUB_API_KEY from env
-tools   = toolkit.get_tools()         # list[BaseTool] — pass to your agent
-system  = await toolkit.build_system_prompt()  # ready-made prompt fragment
-```
-
----
-
-## Decision tree
-
-```
-USER ASKS FOR AN ONCHAIN ACTION
-│
-├─ Does an existing workflow cover this?
-│   ├─ YES → keeperhub_execute_workflow(workflow_id=...)
-│   └─ NO  → keeperhub_generate_workflow(prompt=..., execute=True)
-│
-├─ Is this a simple token transfer?
-│   └─ keeperhub_transfer_funds(network, to, amount[, token])
-│
-├─ Is this a contract READ (view/pure)?
-│   └─ keeperhub_contract_call(network, contract, function, call_type="read")
-│
-├─ Is this a contract WRITE?
-│   ├─ 1. keeperhub_estimate_gas(...)         ← check affordability first
-│   └─ 2. keeperhub_contract_call(..., call_type="write")  → execution_id
-│              └─ 3. keeperhub_get_execution_status(execution_id)
-│
-├─ Is this conditional (only execute if condition X is true)?
-│   └─ keeperhub_check_and_execute(...)
-│
-└─ Discovery tasks
-    ├─ "what chains are supported?" → keeperhub_list_chains
-    ├─ "what functions does contract X have?" → keeperhub_fetch_contract_abi
-    └─ "what workflows exist?" → keeperhub_list_workflows
-```
-
----
-
-## Tool catalogue
-
-### 1. `keeperhub_list_chains`
-
-**Purpose:** Discover which blockchain networks KeeperHub supports.
-
-**Input:** *(none)*
-
-**Returns:**
-```json
-[
-  {
-    "chainId": 8453,
-    "name": "Base",
-    "symbol": "ETH",
-    "isTestnet": false,
-    "explorerUrl": "https://basescan.org"
-  }
-]
-```
-
-**When to call:** Before any web3 operation when you don't know the chain ID.
-
-**Common chain IDs:**
-| Chain | chainId |
-|-------|---------|
-| Ethereum Mainnet | 1 |
-| Base | 8453 |
-| Polygon | 137 |
-| Arbitrum One | 42161 |
-| Optimism | 10 |
-| Avalanche C-Chain | 43114 |
-| BNB Smart Chain | 56 |
-
----
-
-### 2. `keeperhub_fetch_contract_abi`
-
-**Purpose:** Get the verified ABI for a contract. Auto-resolves proxies (EIP-1967, UUPS, Transparent Proxy, EIP-1167, Gnosis Safe, EIP-2535 Diamond).
-
-**Input:**
-```python
-chain_id: int           # e.g. 8453 for Base
-contract_address: str   # "0x..."
-```
-
-**Returns:** Raw ABI JSON array (or `{"error": "..."}` on failure)
-
-**When to call:** Before `keeperhub_contract_call` when you don't know available functions.
-
----
-
-### 3. `keeperhub_transfer_funds`
-
-**Purpose:** Send ETH (or any ERC-20) to a recipient address.
-
-**Input:**
-```python
-network: str    # Chain ID as string — "8453" for Base, "1" for Ethereum
-to:      str    # Recipient address "0x..."
-amount:  str    # Decimal string — "0.01" for 0.01 ETH
-token:   str    # OPTIONAL — ERC-20 contract address; omit for native ETH
-```
-
-**Returns:**
-```json
-{
-  "ok": true,
-  "execution_id": "exec_abc123",
-  "status": "running",
-  "hint": "Call keeperhub_get_execution_status with this execution_id to get the tx hash."
-}
-```
-
-**Follow-up:** Always call `keeperhub_get_execution_status(execution_id)` to get tx hash.
-
----
-
-### 4. `keeperhub_contract_call`
-
-**Purpose:** Read or write any smart contract function.
-
-**Input:**
-```python
-network:              str        # Chain ID as string
-contract:             str        # Contract address "0x..."
-function:             str        # Function name e.g. "balanceOf", "transfer"
-args:                 list|None  # OPTIONAL — positional arguments e.g. ["0xABC...", "1000000"]
-abi:                  str|None   # OPTIONAL — ABI JSON string; auto-fetched if omitted
-call_type:            str        # "read" (default) or "write"
-gas_limit_multiplier: str|None   # OPTIONAL — write only, e.g. "1.2" adds 20% headroom
-```
-
-**Returns (read):**
-```json
-{ "ok": true, "result": "1000000000000000000" }
-```
-
-**Returns (write):**
-```json
-{
-  "ok": true,
-  "execution_id": "exec_xyz",
-  "status": "pending",
-  "hint": "Call keeperhub_get_execution_status with this execution_id to get the tx hash."
-}
-```
-
-**Agent rule:** For write calls, ALWAYS follow up with `keeperhub_get_execution_status`.
-
----
-
-### 5. `keeperhub_check_and_execute`
-
-**Purpose:** Atomically check an onchain condition, then execute a transaction only if the condition is met. Eliminates race conditions between check and action.
-
-**Input:**
-```python
-network:             str       # Chain ID as string
-check_contract:      str       # Contract to read condition from
-check_function:      str       # View function for the check
-check_args:          list|None # OPTIONAL — args for check function
-check_abi:           str|None  # OPTIONAL — ABI for check contract
-condition_operator:  str       # "gt" | "lt" | "eq" | "neq" | "gte" | "lte"
-condition_value:     str       # Value to compare against (as string)
-action_contract:     str       # Contract to call if condition is true
-action_function:     str       # Function to execute
-action_args:         list|None # OPTIONAL — args for action function
-action_abi:          str|None  # OPTIONAL — ABI for action contract
-```
-
-**Returns:**
-```json
-{
-  "ok": true,
-  "condition_met": true,
-  "execution_id": "exec_abc",
-  "status": "pending",
-  "hint": "Call keeperhub_get_execution_status with this execution_id to get the tx hash."
-}
-```
-
-**Example use case:** "If Aave health factor < 1.2, trigger repayWithATokens"
-
----
-
-### 6. `keeperhub_estimate_gas`
-
-**Purpose:** Estimate gas cost before submitting a write transaction.
-
-**Input:**
-```python
-network:  str       # Chain ID as string
-contract: str       # Contract address
-function: str       # Function name
-args:     list|None # OPTIONAL — function arguments
-```
-
-**Returns:**
-```json
-{
-  "ok": true,
-  "estimated_gas": 85000,
-  "estimated_eth": "0.0000034",
-  "estimated_usd": "0.0102",
-  "gas_price": "40000000000"
-}
-```
-
-**When to call:** Before `keeperhub_contract_call(call_type="write")` to check affordability.
-
----
-
-### 7. `keeperhub_list_workflows`
-
-**Purpose:** Browse all saved automation workflows in the authenticated org.
-
-**Input:**
-```python
-project_id: str|None  # OPTIONAL — filter by project folder
-tag_id:     str|None  # OPTIONAL — filter by tag
-```
-
-**Returns:**
-```json
-[
-  {
-    "id": "wf_abc123",
-    "name": "Rebalance ETH-USDC",
-    "description": "Swap ETH for USDC when ETH/USDC ratio drops below target",
-    "visibility": "private",
-    "updated_at": "2025-04-20T10:00:00Z"
-  }
-]
-```
-
-**Agent rule:** Call this FIRST before `keeperhub_generate_workflow`. Reuse existing workflows.
-
----
-
-### 8. `keeperhub_execute_workflow`
-
-**Purpose:** Run a workflow by ID. Polls until completion (max 2 minutes).
-
-**Input:**
-```python
-workflow_id: str        # Format: "wf_xxx" — get from keeperhub_list_workflows
-input:       dict|None  # OPTIONAL — runtime key-value pairs, max 8KB
-wait:        bool       # True (default) = block until done; False = fire-and-forget
-```
-
-**Returns (completed):**
-```json
-{
-  "ok": true,
-  "summary": "Workflow wf_abc completed after 1 attempt. Execution ID: exec_xyz.",
-  "execution_id": "exec_xyz",
-  "status": "completed",
-  "is_retryable": null,
-  "suggestion": null
-}
-```
-
-**Returns (failed):**
-```json
-{
-  "ok": false,
-  "summary": "Workflow wf_abc failed with status 'error'. Execution ID: exec_xyz.",
-  "execution_id": "exec_xyz",
-  "status": "error",
-  "is_retryable": true,
-  "suggestion": "Check keeperhub_get_execution_status for details."
-}
-```
-
-**Returns (timeout):**
-```json
-{
-  "ok": false,
-  "summary": "Workflow wf_abc timed out. Execution ID: exec_xyz.",
-  "execution_id": "exec_xyz",
-  "status": "timeout",
-  "is_retryable": true,
-  "suggestion": "Check execution status separately: keeperhub_get_execution_status('exec_xyz')"
-}
-```
-
-**Agent rules:**
-- Always surface `summary` to the user verbatim — it's human-readable
-- If `ok=false` and `is_retryable=true`: retry once after a short wait, then give up
-- If `is_retryable=false` (e.g. `cancelled`): report failure immediately
-
----
-
-### 9. `keeperhub_generate_workflow`
-
-**Purpose:** Create a new workflow from a plain-English description.
-
-**Input:**
-```python
-prompt:  str       # Natural language description, max 1000 chars
-context: str|None  # OPTIONAL — wallet/protocol/chain context, max 500 chars
-execute: bool      # False (default) = create only; True = create AND execute immediately
-```
-
-**Returns (create only):**
-```json
-{
-  "ok": true,
-  "workflow_id": "wf_new123",
-  "name": "Rebalance ETH-USDC",
-  "description": "Swap ETH for USDC when ratio drops below target",
-  "hint": "To execute, call keeperhub_execute_workflow with workflow_id='wf_new123'"
-}
-```
-
-**Returns (execute=True):**
-```json
-{
-  "ok": true,
-  "workflow_id": "wf_new123",
-  "execution_id": "exec_abc",
-  "status": "running",
-  "hint": "Call keeperhub_get_execution_status to track completion."
-}
-```
-
-**Agent rule:** Always call `keeperhub_list_workflows` first — generate only if no match found.
-
-**Prompt injection guard:** Prompts are limited to 1000 chars; context to 500. Workflow names are sanitized before injection into system prompts.
-
----
-
-### 10. `keeperhub_get_execution_status`
-
-**Purpose:** Check status and progress of any workflow execution.
-
-**Input:**
-```python
-execution_id:  str   # Format: "exec_xxx" or UUID
-include_logs:  bool  # False (default); True = include step-level detail (use for debugging)
-```
-
-**Returns:**
-```json
-{
-  "execution_id": "exec_abc123",
-  "status": "completed",
-  "progress": 100,
-  "error": null,
-  "failed_node_id": null
-}
-```
-
-**With `include_logs=True`:**
-```json
-{
-  "execution_id": "exec_abc123",
-  "status": "failed",
-  "progress": 60,
-  "error": "insufficient funds",
-  "failed_node_id": "node_transfer_1",
-  "logs": [
-    {
-      "step": "Approve USDC",
-      "status": "completed",
-      "duration_ms": 2100,
-      "tx_hash": "0xabc...",
-      "error": null
-    },
-    {
-      "step": "Transfer USDC",
-      "status": "failed",
-      "duration_ms": 800,
-      "tx_hash": null,
-      "error": "insufficient funds"
-    }
-  ]
-}
-```
-
-**Status values:**
-| Status | Meaning |
-|--------|---------|
-| `pending` | Queued, not started |
-| `running` | Executing now |
-| `completed` / `success` | Terminal — success |
-| `failed` / `error` | Terminal — retryable failure |
-| `cancelled` | Terminal — not retryable |
-
-**Security note:** Returns generic `"Execution not found or not accessible with your API key."` for 404/401/403 — does not reveal whether the ID exists.
-
----
-
-## Error handling reference
-
-All tools return a JSON string. Parse it and check `ok` or `error`:
-
-```python
-import json
-
-result = await some_tool._arun(...)
-data = json.loads(result)
-
-if data.get("ok") is False or "error" in data:
-    print(f"Error: {data.get('error') or data.get('summary')}")
-    if data.get("is_retryable"):
-        print("Retrying once...")
-```
-
-**Error pattern guarantees:**
-- `ok: false` always accompanies a `summary` written for humans
-- `is_retryable` is `true` only for transient failures (network, timeout, gas spike)
-- `suggestion` gives the agent a concrete next step
-
----
-
-## Toolkit configuration reference
-
-```python
-KeeperHubToolkit(
-    api_key="kh_live_...",              # env: KEEPERHUB_API_KEY
-    base_url="https://app.keeperhub.com",
-    timeout=30.0,                        # seconds per request
-    tools=["list_chains", "transfer"],   # subset; None = all 10
-    agent_context={
-        "session_id": "...",             # → X-Agent-Session-Id header
-        "run_id":     "...",             # → X-Agent-Run-Id header
-        "goal":       "...",             # → X-Agent-Goal header
-    },
-)
-```
-
-**Valid `tools` keys:**
-`list_chains` · `fetch_abi` · `transfer` · `contract_call` · `check_and_execute`
-· `estimate_gas` · `list_workflows` · `execute_workflow` · `generate_workflow`
-· `execution_status`
-
----
-
-## System prompt fragment (sample output)
-
-`await toolkit.build_system_prompt()` produces:
-
-```
-You have access to KeeperHub — an onchain workflow automation platform.
-You can execute blockchain transactions, DeFi operations, and token transfers.
-
-Available tools:
-- keeperhub_list_chains: Discover supported blockchain networks
-- keeperhub_fetch_contract_abi: Get verified ABI for any contract (auto-detects proxies)
-- keeperhub_transfer_funds: Send ETH or ERC-20 tokens
-- keeperhub_contract_call: Read or write any smart contract function
-- keeperhub_check_and_execute: Atomic condition check + transaction (no race conditions)
-- keeperhub_estimate_gas: Estimate gas cost before submitting a tx
-- keeperhub_list_workflows: Discover available automation workflows
-- keeperhub_execute_workflow: Run an existing workflow by ID
-- keeperhub_generate_workflow: Create a new workflow from a plain-English description
-- keeperhub_get_execution_status: Poll execution status and get tx hash
-
-Agent reasoning guide:
-1. For onchain actions: check keeperhub_list_workflows first — reuse before generating
-2. For new automations: keeperhub_generate_workflow → keeperhub_execute_workflow
-3. For write calls: use execution_id from the response + keeperhub_get_execution_status
-4. If ok=false and is_retryable=true: retry once after a short wait, then give up
-5. Always surface the summary field to the user — it is written for human consumption
-
-Available workflows (3):
-- Rebalance ETH-USDC [wf_abc]: Swap ETH for USDC when ratio drops below target
-- Harvest Aave Rewards [wf_def]: Claim and compound Aave yield
-- Monitor Health Factor [wf_ghi]: Alert when Aave health factor drops below 1.5
-```
-
----
-
-## Integration examples
-
-### LangGraph ReAct agent
-
-```python
 from langchain_keeperhub import KeeperHubToolkit
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 
-async with KeeperHubToolkit(agent_context={"goal": "DeFi automation"}) as tk:
-    agent = create_react_agent(
-        ChatOpenAI(model="gpt-4o"),
-        tk.get_tools(),
-        state_modifier=await tk.build_system_prompt(),
-    )
-    result = await agent.ainvoke({"messages": [{"role": "user", "content": "..."}]})
-```
-
-### OpenAI function calling (manual tool loop)
-
-```python
-from langchain_keeperhub import KeeperHubToolkit
-
-toolkit = KeeperHubToolkit(tools=["list_chains", "transfer"])
-tools   = {t.name: t for t in toolkit.get_tools()}
-
-# Convert to OpenAI schema
-openai_tools = [
-    {"type": "function", "function": {"name": t.name, "description": t.description,
-     "parameters": t.args_schema.model_json_schema()}}
-    for t in toolkit.get_tools()
-]
-
-# In your tool-call handler:
-async def call_tool(name: str, args: dict) -> str:
-    tool = tools[name]
-    return await tool._arun(**args)
-```
-
-### Anthropic Claude tool use
-
-```python
-import anthropic, json
-from langchain_keeperhub import KeeperHubToolkit
-
-toolkit = KeeperHubToolkit()
-tools_map = {t.name: t for t in toolkit.get_tools()}
-
-# Build Anthropic tool definitions
-claude_tools = [
-    {
-        "name": t.name,
-        "description": t.description,
-        "input_schema": t.args_schema.model_json_schema(),
-    }
-    for t in toolkit.get_tools()
-]
-
-client = anthropic.AsyncAnthropic()
-response = await client.messages.create(
-    model="claude-opus-4-5",
-    max_tokens=1024,
-    tools=claude_tools,
-    messages=[{"role": "user", "content": "Send 0.01 ETH to 0xABC... on Base"}],
+toolkit = KeeperHubToolkit(
+    api_key="kh_live_...",          # or KEEPERHUB_API_KEY env var
+    tools=["list_chains", "transfer"],  # subset; omit = all 32
+    agent_context={
+        "session_id": "conv-123",   # → X-Agent-Session-Id header
+        "run_id": "run-abc",        # → X-Agent-Run-Id header
+        "goal": "DeFi automation",  # → X-Agent-Goal header
+    },
 )
 
-# Handle tool calls
-for block in response.content:
-    if block.type == "tool_use":
-        tool = tools_map[block.name]
-        result = await tool._arun(**block.input)
-        print(result)
+system = await toolkit.build_system_prompt()  # injects live workflow list
+agent = create_react_agent(ChatOpenAI(model="gpt-4o"), toolkit.get_tools(), state_modifier=system)
+```
+
+---
+
+## All valid `ToolKey` values
+
+```python
+ToolKey = Literal[
+    # Chain & contract
+    "list_chains", "fetch_abi",
+    # Web3
+    "transfer", "contract_call", "check_and_execute", "estimate_gas",
+    # Workflows
+    "list_workflows", "execute_workflow", "generate_workflow", "execution_status",
+    # DeFi protocols
+    "list_protocols", "protocol_action",
+    # Payments
+    "pay_and_run",
+    # Agent identity & wallet
+    "register_agent", "wallet_balance", "provision_wallet",
+    # Notifications
+    "notify", "list_integrations",
+    # Chainlink
+    "chainlink_ccip", "chainlink_price",
+    # Ajna
+    "ajna",
+    # Utility plugins
+    "run_code", "math_aggregate",
+    # Action schema discovery
+    "get_action_schema", "search_actions",
+    # Workflow versioning & migration
+    "workflow_version", "workflow_migrate", "workflow_publish",
+]
+```
+
+---
+
+## Tool decision tree
+
+```
+Task
+├─ need chain ID                          → keeperhub_list_chains
+├─ need contract functions                → keeperhub_fetch_contract_abi
+│
+├─ send ETH/token                         → keeperhub_transfer_funds
+│     check affordability first           → keeperhub_estimate_gas
+├─ read contract (view/pure)              → keeperhub_contract_call (call_type="read")
+├─ write contract                         → keeperhub_contract_call (call_type="write")
+├─ conditional execute                    → keeperhub_check_and_execute
+│
+├─ browse org workflows                   → keeperhub_list_workflows
+├─ run workflow by ID                     → keeperhub_execute_workflow
+├─ create workflow from description       → keeperhub_generate_workflow
+├─ check execution status                 → keeperhub_get_execution_status
+├─ run paid/listed workflow               → keeperhub_pay_and_run
+│
+├─ Aave/Uniswap/Lido/etc action           → keeperhub_protocol_action
+│     discover params first               → keeperhub_get_action_schema
+│     discover action names               → keeperhub_search_actions
+├─ bridge tokens cross-chain              → keeperhub_chainlink_ccip
+├─ get ETH/BTC price                      → keeperhub_chainlink_price
+├─ Ajna pool/borrower data                → keeperhub_ajna
+│
+├─ check wallet USDC for payments         → keeperhub_wallet_balance
+├─ provision new agent wallet             → keeperhub_provision_wallet
+├─ register agent on-chain (ERC-8004)     → keeperhub_register_agent
+│
+├─ send notification                      → keeperhub_notify
+├─ list configured integrations           → keeperhub_list_integrations
+│
+├─ run custom JS in sandbox               → keeperhub_run_code
+├─ sum/average/max/min numbers            → keeperhub_math_aggregate
+│
+├─ create v2 of workflow                  → keeperhub_workflow_version
+├─ migrate funds v1 → v2                 → keeperhub_workflow_migrate
+└─ publish to marketplace                 → keeperhub_workflow_publish
+```
+
+---
+
+## All 32 tools
+
+### keeperhub_list_chains
+**Key:** `list_chains` | **File:** `tools/chains.py` | **Class:** `ListChainsTool`
+**Input:** *(none)*
+**Returns:** `[{ chainId, name, symbol, isTestnet, explorerUrl }]`
+Key chain IDs: Ethereum=1, Base=8453, Polygon=137, Arbitrum=42161, Tempo=4217
+
+---
+
+### keeperhub_fetch_contract_abi
+**Key:** `fetch_abi` | **File:** `tools/chains.py` | **Class:** `FetchContractABITool`
+**Input:** `chain_id: int, contract_address: str`
+**Returns:** `{ ok, abi: list, explorer_url }`
+Auto-resolves proxies (EIP-1967, UUPS, Transparent Proxy, Diamond)
+
+---
+
+### keeperhub_transfer_funds
+**Key:** `transfer` | **File:** `tools/web3.py` | **Class:** `TransferFundsTool`
+**Input:** `network: str, to: str, amount: str, token: str | None`
+- `network`: chain ID string e.g. `"8453"`
+- `amount`: decimal string e.g. `"0.01"`
+- `token`: ERC-20 address; omit for native ETH/MATIC
+**Returns:** `{ ok, execution_id, status, hint }`
+Follow up with `keeperhub_get_execution_status`
+
+---
+
+### keeperhub_contract_call
+**Key:** `contract_call` | **File:** `tools/web3.py` | **Class:** `ContractCallTool`
+**Input:** `network, contract, function, args?, abi?, call_type: "read"|"write", gas_limit_multiplier?`
+**Returns (read):** `{ ok, result }` — immediate, no gas
+**Returns (write):** `{ ok, execution_id, status }` — poll for tx hash
+
+---
+
+### keeperhub_check_and_execute
+**Key:** `check_and_execute` | **File:** `tools/web3.py` | **Class:** `CheckAndExecuteTool`
+**Input:** `network, check_contract, check_function, check_args?, check_abi?, condition_operator, condition_value, action_contract, action_function, action_args?, action_abi?`
+Condition operators: `gt | lt | eq | neq | gte | lte`
+Atomic — no race condition
+**Returns:** `{ ok, condition_met, execution_id, status }`
+
+---
+
+### keeperhub_estimate_gas
+**Key:** `estimate_gas` | **File:** `tools/web3.py` | **Class:** `EstimateGasTool`
+**Input:** `network, contract, function, args?, abi?`
+**Returns:** `{ ok, estimated_gas, estimated_eth, estimated_usd, gas_price }`
+Auto-fetches ABI if not provided
+
+---
+
+### keeperhub_list_workflows
+**Key:** `list_workflows` | **File:** `tools/workflows.py` | **Class:** `ListWorkflowsTool`
+**Input:** `project_id?: str, tag_id?: str`
+**Returns:** `[{ id, name, description, visibility, updated_at }]`
+Names sanitized against prompt injection
+
+---
+
+### keeperhub_execute_workflow
+**Key:** `execute_workflow` | **File:** `tools/workflows.py` | **Class:** `ExecuteWorkflowTool`
+**Input:** `workflow_id: str, input?: dict, wait: bool = True`
+**Returns (completed):** `{ ok, summary, execution_id, status }`
+**Returns (failed):** `{ ok: False, is_retryable, suggestion }`
+Polls for 2 minutes when `wait=True`
+
+---
+
+### keeperhub_generate_workflow
+**Key:** `generate_workflow` | **File:** `tools/workflows.py` | **Class:** `GenerateWorkflowTool`
+**Input:** `prompt: str (max 1000), context?: str (max 500), execute: bool = False`
+**Returns:** `{ ok, workflow_id, name, hint }` or `{ execution_id }` if execute=True
+
+---
+
+### keeperhub_get_execution_status
+**Key:** `execution_status` | **File:** `tools/workflows.py` | **Class:** `GetExecutionStatusTool`
+**Input:** `execution_id: str, include_logs: bool = False`
+**Returns:** `{ execution_id, status, progress, error, failed_node_id, logs? }`
+Status: `pending | running | completed | success | failed | error | cancelled`
+Security: 404/403 → generic "not found"
+
+---
+
+### keeperhub_pay_and_run
+**Key:** `pay_and_run` | **File:** `tools/payments.py` | **Class:** `PayAndRunTool`
+**Input:** `workflow_id, input?, max_budget_usd: str = "1.00", prefer_mpp: bool = True`
+**Returns:** `{ ok, summary, execution_id, status, payment_protocol }`
+MPP = Tempo USDC.e (cheaper, near-instant); x402 = Base USDC
+
+---
+
+### keeperhub_list_protocols
+**Key:** `list_protocols` | **File:** `tools/protocols.py` | **Class:** `ListProtocolsTool`
+**Input:** `query?: str, protocol?: str`
+**Returns:** `{ count, actions: [{ actionType, name, protocol, description }] }`
+
+---
+
+### keeperhub_protocol_action
+**Key:** `protocol_action` | **File:** `tools/protocols.py` | **Class:** `ProtocolActionTool`
+**Input:** `action_type: str, params: dict`
+**actionType format:** `"protocol/action"` e.g. `"aave-v3/supply"`
+**Key protocols & actions:**
+```
+aave-v3/supply              uniswap/swap-exact-input    lido/wrap
+aave-v3/borrow              uniswap/swap-exact-output   compound-v3/supply
+aave-v3/withdraw            curve/exchange              morpho/supply
+aave-v3/repay               yearn-v3/deposit            cowswap/create-order
+aave-v3/repayWithATokens    rocket-pool/stake           pendle/swap
+```
+Use `keeperhub_get_action_schema` to discover params
+
+---
+
+### keeperhub_chainlink_ccip
+**Key:** `chainlink_ccip` | **File:** `tools/plugins.py` | **Class:** `ChainlinkCcipTool`
+**Input:** `action: str, params: dict`
+Actions: `ccip-get-fee | ccip-send | ccip-approve-bridge-token | ccip-approve-fee-token | ccip-check-bridge-balance | ccip-check-bridge-allowance | ccip-check-fee-balance | ccip-check-fee-allowance`
+Flow: get-fee → approve-bridge-token → approve-fee-token → send
+
+---
+
+### keeperhub_chainlink_price
+**Key:** `chainlink_price` | **File:** `tools/plugins.py` | **Class:** `ChainlinkPriceFeedTool`
+**Input:** `feed: str` — e.g. `"eth-usd"`, `"btc-usd"`, `"link-usd"`, `"matic-usd"`
+**Returns:** `{ ok, feed, price, result }`
+
+---
+
+### keeperhub_ajna
+**Key:** `ajna` | **File:** `tools/plugins.py` | **Class:** `AjnaTool`
+**Input:** `action: str, params?: dict`
+Actions: `get-borrower-info | get-auction-status | get-pool-lup | get-pool-htp | get-hpb-index | price-to-index | index-to-price | get-deposit-index | pool1-kicker-info`
+Permissionless lending on Base — no oracle, no governance
+
+---
+
+### keeperhub_register_agent
+**Key:** `register_agent` | **File:** `tools/agent.py` | **Class:** `RegisterAgentTool`
+**Input:** `name?, description?, capabilities?: list[str]`
+**Returns:** `{ ok, agent_id, token_id, registry_address, tx_hash }`
+Idempotent — checks existing registration before minting
+
+---
+
+### keeperhub_wallet_balance
+**Key:** `wallet_balance` | **File:** `tools/agent.py` | **Class:** `WalletBalanceTool`
+**Input:** `chain_id?: int`
+**Returns:** `{ ok, wallet_address, balances, payment_readiness: { x402_base_usdc, mpp_tempo_usdce } }`
+Use before `pay_and_run` to verify USDC balance
+
+---
+
+### keeperhub_provision_wallet
+**Key:** `provision_wallet` | **File:** `tools/agent.py` | **Class:** `ProvisionWalletTool`
+**Input:** `label?: str`
+**Returns:** `{ ok, wallet_address, sub_org_id, next_steps }`
+Turnkey server-side custody — no private key on disk
+Fund: USDC on Base (x402) or USDC.e on Tempo (MPP)
+
+---
+
+### keeperhub_notify
+**Key:** `notify` | **File:** `tools/notifications.py` | **Class:** `NotifyTool`
+**Input:** `channel: str, message: str, workflow_id?: str, subject?: str`
+**Path 1:** `workflow_id` provided → run that notification workflow
+**Path 2:** no `workflow_id` → AI generates + runs one-shot notification workflow
+
+---
+
+### keeperhub_list_integrations
+**Key:** `list_integrations` | **File:** `tools/notifications.py` | **Class:** `ListIntegrationsTool`
+**Input:** `type?: str` — `"discord" | "telegram" | "sendgrid" | "webhook"`
+**Returns:** `{ count, integrations: [{ id, type, name }] }`
+
+---
+
+### keeperhub_run_code
+**Key:** `run_code` | **File:** `tools/plugins.py` | **Class:** `CodeExecuteTool`
+**Input:** `code: str (max 10k), inputs?: dict`
+**Returns:** `{ ok, workflow_id, execution_id, status }`
+Generates sandboxed workflow step (server-side VM, `fetch()` available)
+
+---
+
+### keeperhub_math_aggregate
+**Key:** `math_aggregate` | **File:** `tools/plugins.py` | **Class:** `MathAggregateTool`
+**Input:** `operation: str, values: list[float], description?: str`
+Operations: `sum | count | average | median | min | max | product`
+**Returns:** `{ ok, operation, result, input_count, summary }`
+Computed locally — instant, no API call
+
+---
+
+### keeperhub_get_action_schema
+**Key:** `get_action_schema` | **File:** `tools/action_schema.py` | **Class:** `GetActionSchemaTool`
+**Input:** `action_type: str`
+**Returns:** `{ ok, action_type, required_fields, optional_fields, output_fields, description }`
+Use BEFORE `keeperhub_protocol_action` to know exact params
+Covers all 396 actions across 20+ protocols + plugins
+
+---
+
+### keeperhub_search_actions
+**Key:** `search_actions` | **File:** `tools/action_schema.py` | **Class:** `SearchActionsTool`
+**Input:** `query: str, category?: str, limit: int = 10`
+**Returns:** `{ total_found, results: [{ action_type, label, category, required_fields }] }`
+
+---
+
+### keeperhub_workflow_version
+**Key:** `workflow_version` | **File:** `tools/workflow_migrate.py` | **Class:** `WorkflowVersionTool`
+**Input:** `workflow_id: str, improvements?: str, go_live: bool = False`
+**Returns:** `{ ok, original_workflow_id, new_workflow_id, next_steps }`
+
+---
+
+### keeperhub_workflow_migrate
+**Key:** `workflow_migrate` | **File:** `tools/workflow_migrate.py` | **Class:** `WorkflowMigrateTool`
+**Input:** `from_workflow_id, to_workflow_id, withdraw_input?, activate_new: bool = True, activate_input?`
+**Returns:** `{ ok, drain_result, activate_result, steps, summary }`
+Answers: "how do I move funds from v1 to v2?"
+
+---
+
+### keeperhub_workflow_publish
+**Key:** `workflow_publish` | **File:** `tools/workflow_migrate.py` | **Class:** `PublishWorkflowTool`
+**Input:** `workflow_id: str`
+**Returns:** `{ ok, workflow_id, status, name }`
+Publishes to KeeperHub marketplace for x402/MPP monetization
+
+---
+
+## All class imports
+
+```python
+from langchain_keeperhub.tools import (
+    # Chain & contract
+    ListChainsTool, FetchContractABITool,
+    # Web3
+    TransferFundsTool, ContractCallTool,
+    CheckAndExecuteTool, EstimateGasTool,
+    # Workflows
+    ListWorkflowsTool, ExecuteWorkflowTool,
+    GenerateWorkflowTool, GetExecutionStatusTool,
+    # Protocols
+    ListProtocolsTool, ProtocolActionTool,
+    # Payments
+    PayAndRunTool,
+    # Agent & wallet
+    RegisterAgentTool, WalletBalanceTool, ProvisionWalletTool,
+    # Notifications
+    NotifyTool, ListIntegrationsTool,
+    # Plugins
+    ChainlinkCcipTool, ChainlinkPriceFeedTool,
+    AjnaTool, CodeExecuteTool, MathAggregateTool,
+    # Schema discovery
+    GetActionSchemaTool, SearchActionsTool,
+    # Workflow management
+    WorkflowVersionTool, WorkflowMigrateTool, PublishWorkflowTool,
+)
+
+# Direct usage:
+from langchain_keeperhub.client import KeeperHubClient
+client = KeeperHubClient(api_key="kh_live_...")
+tool = ProtocolActionTool(client=client)
+result = await tool._arun(action_type="aave-v3/supply", params={...})
+```
+
+---
+
+## Never-throws pattern
+
+Every tool returns a JSON string — never raises. Always parse:
+
+```python
+import json
+
+result = await tool._arun(...)
+data = json.loads(result)
+
+if not data.get("ok"):
+    print(f"Error: {data.get('error') or data.get('summary')}")
+    if data.get("is_retryable"):
+        # retry once
+        pass
+```
+
+**Agent reasoning rules:**
+1. `list_workflows` first — reuse before generating
+2. `get_action_schema` before `protocol_action` — know your params
+3. `wallet_balance` before `pay_and_run` — verify USDC
+4. `estimate_gas` before `contract_call(write)` — check cost
+5. Always surface `summary` to user — written for humans
+6. `is_retryable=True` → retry once, then report failure
+
+---
+
+## Context manager
+
+```python
+async with KeeperHubToolkit(api_key="kh_live_...") as toolkit:
+    tools = toolkit.get_tools()
+    # httpx.AsyncClient closed automatically on exit
 ```

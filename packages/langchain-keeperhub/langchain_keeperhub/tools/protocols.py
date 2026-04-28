@@ -35,28 +35,41 @@ class ListProtocolsTool(BaseTool):
 
     async def _arun(self, query: str | None = None, protocol: str | None = None) -> str:  # type: ignore[override]
         try:
-            params: dict[str, Any] = {"category": "protocol"}
-            if query:
-                params["q"] = query
-            if protocol:
-                params["protocol"] = protocol
+            # API returns { version, actions: { "code/run-code": {...}, ... }, triggers, chains, ... }
+            response = await self.client.get("/api/mcp/schemas")  # type: ignore[attr-defined]
 
-            actions = await self.client.get("/api/mcp/schemas", **params)  # type: ignore[attr-defined]
-            if isinstance(actions, list):
-                return json.dumps({
-                    "ok": True,
-                    "count": len(actions),
-                    "actions": [
-                        {
-                            "actionType": a.get("actionType") or a.get("slug"),
-                            "name": a.get("name"),
-                            "protocol": a.get("protocol"),
-                            "description": a.get("description"),
-                        }
-                        for a in actions[:25]
-                    ],
+            if not isinstance(response, dict):
+                return json.dumps({"ok": False, "error": "Unexpected response format"})
+
+            all_actions = response.get("actions", {})  # dict keyed by actionType
+
+            # Filter by query or protocol
+            filtered = []
+            for action_type, schema in all_actions.items():
+                if not isinstance(schema, dict):
+                    continue
+                # Filter by protocol prefix (e.g. "aave-v3")
+                if protocol and not action_type.startswith(protocol):
+                    continue
+                # Filter by query keyword
+                if query:
+                    q = query.lower()
+                    if q not in action_type.lower() and q not in schema.get("label", "").lower() and q not in schema.get("description", "").lower():
+                        continue
+                filtered.append({
+                    "actionType": action_type,
+                    "label": schema.get("label"),
+                    "category": schema.get("category"),
+                    "description": schema.get("description"),
+                    "requiredFields": schema.get("requiredFields", {}),
                 })
-            return json.dumps({"ok": True, "data": actions})
+
+            return json.dumps({
+                "ok": True,
+                "count": len(filtered),
+                "total_available": len(all_actions),
+                "actions": filtered[:25],
+            })
         except Exception as e:
             return json.dumps({"ok": False, "error": str(e)})
 
@@ -99,9 +112,12 @@ class ProtocolActionTool(BaseTool):
 
     async def _arun(self, action_type: str, params: dict[str, Any]) -> str:  # type: ignore[override]
         try:
+            # API requires: { actionType: "aave-v3/supply", config: { ... } }
+            # NOT "protocol/aave-v3/supply" — actionType is the MCP schema key directly
+            # NOT "params" — must be "config"
             result = await self.client.post(  # type: ignore[attr-defined]
                 "/api/execute/node",
-                json={"actionType": f"protocol/{action_type}", "params": params},
+                json={"actionType": action_type, "config": params},
             )
             r = result if isinstance(result, dict) else {}
             return json.dumps({

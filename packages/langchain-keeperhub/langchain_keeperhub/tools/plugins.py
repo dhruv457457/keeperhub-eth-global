@@ -47,7 +47,7 @@ class ChainlinkCcipTool(BaseTool):
         try:
             result = await self.client.post(  # type: ignore[attr-defined]
                 "/api/execute/node",
-                json={"actionType": f"protocol/chainlink/{action}", "params": params},
+                json={"actionType": f"chainlink/{action}", "config": params},
             )
             r = result if isinstance(result, dict) else {}
             return json.dumps({
@@ -71,6 +71,10 @@ class _ChainlinkPriceInput(BaseModel):
     feed: str = Field(
         description="Price feed slug e.g. 'eth-usd', 'btc-usd', 'link-usd', 'matic-usd'. Format: {asset}-{quote}."
     )
+    network: int = Field(
+        default=1,
+        description="Chain ID where the Chainlink feed is deployed. Ethereum mainnet=1, Base=8453, Arbitrum=42161."
+    )
 
 
 class ChainlinkPriceFeedTool(BaseTool):
@@ -86,11 +90,11 @@ class ChainlinkPriceFeedTool(BaseTool):
     client: object = Field(exclude=True)
     model_config = {"arbitrary_types_allowed": True}
 
-    async def _arun(self, feed: str) -> str:  # type: ignore[override]
+    async def _arun(self, feed: str, network: int = 1) -> str:  # type: ignore[override]
         try:
             result = await self.client.post(  # type: ignore[attr-defined]
                 "/api/execute/node",
-                json={"actionType": f"protocol/chainlink/{feed}-latest-round-data", "params": {}},
+                json={"actionType": f"chainlink/{feed}-latest-round-data", "config": {"network": str(network)}},
             )
             r = result if isinstance(result, dict) else {}
             return json.dumps({
@@ -139,7 +143,7 @@ class AjnaTool(BaseTool):
         try:
             result = await self.client.post(  # type: ignore[attr-defined]
                 "/api/execute/node",
-                json={"actionType": f"protocol/ajna/{action}", "params": params or {}},
+                json={"actionType": f"ajna/{action}", "config": params or {}},
             )
             r = result if isinstance(result, dict) else {}
             return json.dumps({
@@ -188,38 +192,21 @@ class CodeExecuteTool(BaseTool):
 
     async def _arun(self, code: str, inputs: dict[str, Any] | None = None) -> str:  # type: ignore[override]
         try:
-            prompt = (
-                f"Execute this JavaScript code and return the result:\n```js\n{code[:2000]}\n```"
-                + (f"\nWith these inputs: {json.dumps(inputs)}" if inputs else "")
-            )
+            config: dict[str, Any] = {"code": code}
+            if inputs:
+                config["inputs"] = inputs
 
-            spec = await self.client.post(  # type: ignore[attr-defined]
-                "/api/ai/generate",
-                json={"prompt": prompt[:1000]},
+            result = await self.client.post(  # type: ignore[attr-defined]
+                "/api/execute/node",
+                json={"actionType": "code/run-code", "config": config},
             )
-            saved = await self.client.post(  # type: ignore[attr-defined]
-                "/api/workflows/create",
-                json={
-                    "name": "Code Execution",
-                    "nodes": spec.get("nodes", []) if isinstance(spec, dict) else [],
-                    "edges": spec.get("edges", []) if isinstance(spec, dict) else [],
-                },
-            )
-            wf_id = saved.get("id") if isinstance(saved, dict) else None
-            if not wf_id:
-                return json.dumps({"ok": False, "error": "Failed to create code workflow"})
-
-            exec_result = await self.client.post(  # type: ignore[attr-defined]
-                f"/api/workflow/{wf_id}/execute",
-                json={"input": inputs or {}},
-            )
-            r = exec_result if isinstance(exec_result, dict) else {}
+            r = result if isinstance(result, dict) else {}
             return json.dumps({
                 "ok": True,
-                "workflow_id": wf_id,
                 "execution_id": r.get("executionId"),
-                "status": r.get("status", "running"),
-                "hint": "Call keeperhub_get_execution_status to get the result.",
+                "status": r.get("status"),
+                "result": r.get("result"),
+                "hint": "Call keeperhub_get_execution_status to get the final result." if r.get("executionId") else None,
             })
         except Exception as e:
             return json.dumps({"ok": False, "error": str(e)})

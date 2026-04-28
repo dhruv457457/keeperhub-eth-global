@@ -33,7 +33,7 @@ def mock_client() -> KeeperHubClient:
 def test_toolkit_returns_all_tools_by_default():
     toolkit = KeeperHubToolkit(api_key="kh_test_key")
     tools = toolkit.get_tools()
-    assert len(tools) == 10
+    assert len(tools) == 31
 
 
 def test_toolkit_selective_tools():
@@ -52,7 +52,7 @@ def test_toolkit_selective_tools():
 def test_toolkit_tool_names():
     toolkit = KeeperHubToolkit(api_key="kh_test_key")
     names = {t.name for t in toolkit.get_tools()}
-    expected = {
+    expected_subset = {
         "keeperhub_list_chains",
         "keeperhub_fetch_contract_abi",
         "keeperhub_transfer_funds",
@@ -63,8 +63,13 @@ def test_toolkit_tool_names():
         "keeperhub_execute_workflow",
         "keeperhub_generate_workflow",
         "keeperhub_get_execution_status",
+        "keeperhub_protocol_action",
+        "keeperhub_get_action_schema",
+        "keeperhub_search_actions",
+        "keeperhub_ens_resolve",
     }
-    assert names == expected
+    assert expected_subset.issubset(names)
+    assert len(names) == 31
 
 
 # ─── ListChainsTool ─────────────────────────────────────────────────────────
@@ -116,8 +121,8 @@ async def test_fetch_abi_success(mock_client):
     tool = FetchContractABITool(client=mock_client)
     result = json.loads(await tool._arun(chain_id=1, contract_address="0xabc"))
 
-    assert isinstance(result, list)
-    assert result[0]["name"] == "balanceOf"
+    assert result["ok"] is True
+    assert result["abi"][0]["name"] == "balanceOf"
     mock_client.get.assert_called_once_with("/api/chains/1/abi", address="0xabc")
 
 
@@ -147,8 +152,8 @@ async def test_transfer_with_token(mock_client):
         token="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     )
     call_body = mock_client.post.call_args[1]["json"]
-    assert "token" in call_body
-    assert call_body["token"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    assert "tokenAddress" in call_body
+    assert call_body["tokenAddress"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 
 @pytest.mark.asyncio

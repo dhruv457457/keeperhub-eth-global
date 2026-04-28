@@ -32,14 +32,19 @@ class KeeperHubClient:
     def __init__(
         self,
         api_key: str | None = None,
+        webhook_key: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         agent_context: dict[str, str] | None = None,
     ) -> None:
         resolved_key = api_key or os.environ.get("KEEPERHUB_API_KEY", "")
+        # wfb_ key is used for webhook-triggered workflow execution
+        # kh_ key is used for all other API operations
+        self._webhook_key = webhook_key or os.environ.get("KEEPERHUB_WEBHOOK_KEY", "")
         if not resolved_key:
             raise ValueError(
-                "KeeperHub API key is required. Pass api_key= or set KEEPERHUB_API_KEY."
+                "KeeperHub API key is required. Pass api_key= or set KEEPERHUB_API_KEY.\n"
+                "Note: Use kh_xxx key for API operations, wfb_xxx key for webhook triggers."
             )
 
         headers: dict[str, str] = {
@@ -81,6 +86,30 @@ class KeeperHubClient:
     async def delete(self, path: str) -> None:
         r = await self._client.delete(path)
         self._raise_for_status(r)
+
+    async def trigger_workflow(self, workflow_id: str, payload: dict | None = None) -> Any:
+        """
+        Trigger a workflow via the webhook endpoint using wfb_ key.
+
+        KeeperHub has two key types:
+        - kh_xxx → API management (list, read, execute via /api/workflow/{id}/execute)
+        - wfb_xxx → Webhook trigger (POST /api/workflows/{id}/webhook)
+
+        The webhook pattern is preferred for external integrations and published workflows.
+        Set KEEPERHUB_WEBHOOK_KEY env var or pass webhook_key= to KeeperHubClient.
+        """
+        if not self._webhook_key:
+            # Fall back to regular execute endpoint with kh_ key
+            return await self.post(f"/api/workflow/{workflow_id}/execute", json={"input": payload or {}})
+
+        # Use wfb_ key with webhook endpoint
+        r = await self._client.post(
+            f"/api/workflows/{workflow_id}/webhook",
+            json=payload or {},
+            headers={"Authorization": f"Bearer {self._webhook_key}"},
+        )
+        self._raise_for_status(r)
+        return r.json() if r.content else {}
 
     async def aclose(self) -> None:
         await self._client.aclose()

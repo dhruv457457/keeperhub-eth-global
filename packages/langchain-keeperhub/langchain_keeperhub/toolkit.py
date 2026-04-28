@@ -46,6 +46,10 @@ from langchain_keeperhub.tools import (
     PublishWorkflowTool,
     WorkflowMigrateTool,
     WorkflowVersionTool,
+    # ENS
+    EnsLookupTool,
+    EnsResolveTool,
+    EnsTextRecordTool,
 )
 
 ToolKey = Literal[
@@ -77,6 +81,9 @@ ToolKey = Literal[
     "workflow_version",
     "workflow_migrate",
     "workflow_publish",
+    "ens_resolve",
+    "ens_text_record",
+    "ens_lookup",
 ]
 
 ALL_TOOLS: tuple[ToolKey, ...] = (
@@ -108,6 +115,9 @@ ALL_TOOLS: tuple[ToolKey, ...] = (
     "workflow_version",
     "workflow_migrate",
     "workflow_publish",
+    "ens_resolve",
+    "ens_text_record",
+    "ens_lookup",
 )
 
 
@@ -199,6 +209,10 @@ class KeeperHubToolkit:
             ("workflow_version",  WorkflowVersionTool(client=self._client)),
             ("workflow_migrate",  WorkflowMigrateTool(client=self._client)),
             ("workflow_publish",  PublishWorkflowTool(client=self._client)),
+            # ENS
+            ("ens_resolve",       EnsResolveTool(client=self._client)),
+            ("ens_text_record",   EnsTextRecordTool(client=self._client)),
+            ("ens_lookup",        EnsLookupTool(client=self._client)),
         ]
         return [tool for key, tool in all_tools if key in self._enabled]
 
