@@ -1,0 +1,15 @@
+{
+  "name": "ts-langchain-x402-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "tsx index.ts"
+  },
+  "dependencies": {
+    "@keeperhub/langchain": "file:../../../packages/langchain-tools",
+    "@langchain/core": "^1.0.0",
+    "keeperhub-sdk": "file:../../../packages/sdk",
+    "tsx": "^4.21.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "elizaos-plugin-operator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "tsx index.ts"
+  },
+  "dependencies": {
+    "@elizaos/core": "^0.1.9",
+    "@keeperhub/elizaos": "file:../../../packages/elizaos-plugin",
+    "tsx": "^4.21.0"
+  }
+}

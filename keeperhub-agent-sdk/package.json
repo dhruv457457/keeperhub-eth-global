@@ -1,0 +1,30 @@
+{
+  "name": "keeperhub-agent-sdk-showcase",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --webpack -p 3100",
+    "build": "next build --webpack",
+    "start": "next start -p 3100",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
+    "fix": "prettier --write ."
+  },
+  "dependencies": {
+    "@elizaos/core": "^0.1.9",
+    "@keeperhub/elizaos": "file:../packages/elizaos-plugin",
+    "@keeperhub/langchain": "file:../packages/langchain-tools",
+    "@langchain/core": "^1.0.0",
+    "keeperhub-sdk": "file:../packages/sdk",
+    "next": "16.2.2",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "prettier": "^3.8.1",
+    "typescript": "^5"
+  }
+}
