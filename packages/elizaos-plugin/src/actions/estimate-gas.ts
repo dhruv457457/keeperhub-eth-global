@@ -28,8 +28,12 @@ function extractFunctionName(text: string): string | null {
 
 function extractNetwork(text: string): string {
   const map: Record<string, string> = {
-    ethereum: "1", mainnet: "1", base: "8453",
-    polygon: "137", arbitrum: "42161", optimism: "10",
+    ethereum: "1",
+    mainnet: "1",
+    base: "8453",
+    polygon: "137",
+    arbitrum: "42161",
+    optimism: "10",
   };
   const lower = text.toLowerCase();
   for (const [name, id] of Object.entries(map)) {
@@ -42,14 +46,21 @@ export function createEstimateGasAction(kh: KeeperHub): Action {
   return {
     name: "KEEPERHUB_ESTIMATE_GAS",
     similes: [
-      "ESTIMATE_GAS", "GAS_ESTIMATE", "HOW_MUCH_GAS",
-      "GAS_COST", "TRANSACTION_COST", "TX_COST",
+      "ESTIMATE_GAS",
+      "GAS_ESTIMATE",
+      "HOW_MUCH_GAS",
+      "GAS_COST",
+      "TRANSACTION_COST",
+      "TX_COST",
     ],
     description:
       "Estimate the gas cost (ETH + USD) for a smart contract function call before executing it. " +
       "Provide the contract address and function name.",
 
-    validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    validate: async (
+      _runtime: IAgentRuntime,
+      message: Memory
+    ): Promise<boolean> => {
       const text = message.content?.text ?? "";
       const hasGasKeyword = /gas|cost|estimate|fee/i.test(text);
       const hasAddress = /\b0x[0-9a-fA-F]{40}\b/.test(text);
@@ -67,34 +78,51 @@ export function createEstimateGasAction(kh: KeeperHub): Action {
 
       const contract = extractContractAddress(text);
       if (!contract) {
-        await callback?.({ text: "❌ Please provide a contract address (0x...)." });
+        await callback?.({
+          text: "❌ Please provide a contract address (0x...).",
+        });
         return false;
       }
 
       const fn = extractFunctionName(text);
       if (!fn) {
-        await callback?.({ text: "❌ Please specify the function name (e.g. 'estimate gas for transfer')." });
+        await callback?.({
+          text: "❌ Please specify the function name (e.g. 'estimate gas for transfer').",
+        });
         return false;
       }
 
       const network = extractNetwork(text);
 
-      await callback?.({ text: `⛽ Estimating gas for \`${fn}\` on \`${contract}\`…` });
+      await callback?.({
+        text: `⛽ Estimating gas for \`${fn}\` on \`${contract}\`…`,
+      });
 
       try {
-        const estimate = await kh.web3.estimateGas({ network, contract, function: fn });
+        const estimate = await kh.web3.estimateGas({
+          network,
+          contract,
+          function: fn,
+        });
         const e = estimate as Record<string, unknown>;
 
-        const lines = [`⛽ Gas estimate for \`${fn}\`:`, `• Gas units: **${e["estimatedGas"] ?? "N/A"}**`];
-        if (e["estimatedEth"]) lines.push(`• ETH cost: **${e["estimatedEth"]} ETH**`);
-        if (e["estimatedUsd"]) lines.push(`• USD cost: **~$${e["estimatedUsd"]}**`);
+        const lines = [
+          `⛽ Gas estimate for \`${fn}\`:`,
+          `• Gas units: **${e["estimatedGas"] ?? "N/A"}**`,
+        ];
+        if (e["estimatedEth"])
+          lines.push(`• ETH cost: **${e["estimatedEth"]} ETH**`);
+        if (e["estimatedUsd"])
+          lines.push(`• USD cost: **~$${e["estimatedUsd"]}**`);
         if (e["gasPrice"]) lines.push(`• Gas price: ${e["gasPrice"]} wei`);
 
         await callback?.({ text: lines.join("\n") });
         return true;
       } catch (err) {
         elizaLogger.error(`[KeeperHub] Gas estimate failed: ${err}`);
-        await callback?.({ text: `❌ Gas estimate failed: ${err instanceof Error ? err.message : String(err)}` });
+        await callback?.({
+          text: `❌ Gas estimate failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
         return false;
       }
     },
@@ -103,7 +131,9 @@ export function createEstimateGasAction(kh: KeeperHub): Action {
       [
         {
           user: "{{user1}}",
-          content: { text: "Estimate gas for transfer on 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 on Ethereum" },
+          content: {
+            text: "Estimate gas for transfer on 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 on Ethereum",
+          },
         },
         {
           user: "{{agentName}}",

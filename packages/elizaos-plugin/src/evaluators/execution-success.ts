@@ -1,8 +1,4 @@
-import type {
-  Evaluator,
-  IAgentRuntime,
-  Memory,
-} from "@elizaos/core";
+import type { Evaluator, IAgentRuntime, Memory } from "@elizaos/core";
 import { elizaLogger } from "@elizaos/core";
 import type { KeeperHub } from "keeperhub-sdk";
 
@@ -19,7 +15,8 @@ import type { KeeperHub } from "keeperhub-sdk";
  *   "KeeperHub execution exec_xyz failed: insufficient funds"
  */
 
-const EXEC_ID_PATTERN = /\b(exec_[a-zA-Z0-9_-]{1,64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/g;
+const EXEC_ID_PATTERN =
+  /\b(exec_[a-zA-Z0-9_-]{1,64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/g;
 
 function extractExecutionIds(text: string): string[] {
   const ids = new Set<string>();
@@ -40,13 +37,19 @@ export function createExecutionSuccessEvaluator(kh: KeeperHub): Evaluator {
     similes: ["EXECUTION_EVALUATOR", "KEEPERHUB_STATUS_EVALUATOR"],
     alwaysRun: false,
 
-    validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    validate: async (
+      _runtime: IAgentRuntime,
+      message: Memory
+    ): Promise<boolean> => {
       const text = message.content?.text ?? "";
       EXEC_ID_PATTERN.lastIndex = 0;
       return EXEC_ID_PATTERN.test(text);
     },
 
-    handler: async (runtime: IAgentRuntime, message: Memory): Promise<string> => {
+    handler: async (
+      runtime: IAgentRuntime,
+      message: Memory
+    ): Promise<string> => {
       const text = message.content?.text ?? "";
       const ids = extractExecutionIds(text);
 
@@ -54,19 +57,27 @@ export function createExecutionSuccessEvaluator(kh: KeeperHub): Evaluator {
 
       const results: string[] = [];
 
-      for (const id of ids.slice(0, 5)) { // cap at 5 to avoid rate-limiting
+      for (const id of ids.slice(0, 5)) {
+        // cap at 5 to avoid rate-limiting
         try {
           const status = await kh.executions.getStatus(id);
           const s = status as Record<string, unknown>;
           const state = String(s["status"] ?? "unknown");
-          const terminal = ["completed", "success", "failed", "error", "cancelled"].includes(state);
+          const terminal = [
+            "completed",
+            "success",
+            "failed",
+            "error",
+            "cancelled",
+          ].includes(state);
 
           if (!terminal) {
             results.push(`Execution ${id} is still ${state}.`);
             continue;
           }
 
-          const txHash = (s["transactionHash"] as string) ?? (s["txHash"] as string);
+          const txHash =
+            (s["transactionHash"] as string) ?? (s["txHash"] as string);
           const success = ["completed", "success"].includes(state);
           const fact = success
             ? `KeeperHub execution ${id} completed successfully.${txHash ? ` TX: ${txHash}` : ""}`
@@ -74,7 +85,7 @@ export function createExecutionSuccessEvaluator(kh: KeeperHub): Evaluator {
 
           // Store as a memory fragment so future turns can reference it
           await runtime.messageManager.createMemory({
-            id: crypto.randomUUID(),
+            id: crypto.randomUUID() as `${string}-${string}-${string}-${string}-${string}`,
             userId: message.userId,
             agentId: message.agentId,
             roomId: message.roomId,
@@ -85,7 +96,9 @@ export function createExecutionSuccessEvaluator(kh: KeeperHub): Evaluator {
           results.push(fact);
           elizaLogger.debug(`[KeeperHub Evaluator] ${fact}`);
         } catch (err) {
-          results.push(`Could not check status for ${id}: ${err instanceof Error ? err.message : String(err)}`);
+          results.push(
+            `Could not check status for ${id}: ${err instanceof Error ? err.message : String(err)}`
+          );
         }
       }
 

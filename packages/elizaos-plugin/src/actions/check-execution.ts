@@ -133,7 +133,10 @@ export function createCheckExecutionAction(kh: KeeperHub): Action {
         );
         // Don't reveal whether an execution ID exists vs. access is denied —
         // return the same generic message for both 401 and 404 to prevent enumeration
-        if (err instanceof KeeperHubAuthError || err instanceof KeeperHubNotFoundError) {
+        if (
+          err instanceof KeeperHubAuthError ||
+          err instanceof KeeperHubNotFoundError
+        ) {
           await callback?.({
             text: "Execution not found or not accessible with your API key.",
           });

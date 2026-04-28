@@ -1,303 +1,251 @@
 # @keeperhub/elizaos — Agent Skills Reference
 
-This file describes the ElizaOS plugin for AI agents that need to understand its capabilities, trigger conditions, action behavior, and constraints.
+> **For AI assistants (Copilot, Cursor, Claude, etc.):**
+> Read this before writing any code that uses `@keeperhub/elizaos`.
+> Complete reference — 17 actions, 2 providers, 1 evaluator.
 
 ---
 
-## What This Plugin Does
-
-Gives an ElizaOS agent the ability to:
-- List, execute, and generate KeeperHub onchain automation workflows
-- Check execution status and logs
-- Register itself on-chain as an ERC-8004 agent identity
-- Inject live wallet balance and workflow context into every conversation
-
----
-
-## Setup
+## Install & setup
 
 ```typescript
 import { createKeeperHubPlugin } from "@keeperhub/elizaos";
 
 const plugin = createKeeperHubPlugin({
-  apiKey: process.env.KEEPERHUB_API_KEY,
-
-  // Security: only these workflow IDs can be executed via chat
-  allowedWorkflowIds: ["wf_abc123", "wf_xyz456"],
-
-  // Session tagging — surfaced in KeeperHub dashboard
-  agentContext: {
-    sessionId: runtime.agentId,
-    goal: character.bio[0],
-  },
-
-  // Disable providers if context injection is not needed
-  enableWalletProvider: true,   // default: true
-  enableWorkflowsProvider: true, // default: true
+  apiKey: process.env.KEEPERHUB_API_KEY,           // required
+  allowedWorkflowIds: ["wf_abc", "wf_xyz"],         // security allowlist (omit = all)
+  agentContext: { sessionId: runtime.agentId, goal: character.bio[0] },
+  enableWalletProvider: true,        // inject live wallet balance (default: true)
+  enableWorkflowsProvider: true,     // inject workflow list into context (default: true)
+  enableWeb3Actions: true,           // enable all web3/protocol actions (default: true)
+  enableExecutionEvaluator: true,    // track execution outcomes in memory (default: true)
 });
-
-// In AgentRuntime:
-plugins: [plugin]
+// In AgentRuntime: plugins: [plugin]
 ```
 
 ---
 
-## Actions
+## Action decision tree
 
-### `EXECUTE_KEEPERHUB_WORKFLOW`
-
-**Triggered by:** Message containing a `wf_xxx` ID + execution intent ("run", "execute", "trigger", "start").
-
-**What it does:**
-1. Extracts `wf_[a-zA-Z0-9_-]{1,64}` from message text via regex — only this format is matched
-2. Extracts JSON input from ` ```json ``` ` blocks or `input: {...}` patterns
-3. Checks allowlist if configured — rejects at both validate and handler time
-4. Rejects input > 8KB with a clear user message (does NOT silently drop to `{}`)
-5. Emits progress callbacks every step change (`🔄 2/5: Swap USDC…`) — no silent 2-minute waits
-6. Uses `kh.tryRun()` — never throws, never crashes the agent loop
-
-**Trigger examples:**
 ```
-"Run workflow wf_abc123"
-"Execute wf_xyz with input: {"amount": "100"}"
-"Trigger wf_abc123 ```json {"asset": "USDC", "amount": "1000"} ```"
-```
-
-**Allowlist behavior:**
-- If `allowedWorkflowIds` is set: any `wf_xxx` ID not in the set is ignored at validate time — no error shown, action simply doesn't fire
-- If not set: any `wf_xxx` ID in the message is executable
-
-**Callbacks emitted:**
-```
-"⚙️ Executing KeeperHub workflow `wf_abc123` with provided inputs…"
-"🔄 1/3: Swap USDC…"
-"🔄 2/3: Supply to Aave…"
-"✅ Workflow `wf_abc123` finished with status completed.
-🔗 Transaction: `0xabc...`
-⛽ Gas used: 45230 wei
-🔁 Attempts: 1"
-```
-
-On failure:
-```
-"❌ Workflow wf_abc123 failed: execution timed out (retryable)"
+User says...
+├─ "run wf_xxx" / "execute wf_xxx"          → EXECUTE_KEEPERHUB_WORKFLOW
+├─ "pay and run wf_xxx" / x402/mpp budget   → KEEPERHUB_PAY_AND_RUN
+├─ "generate a workflow that does X"        → GENERATE_KEEPERHUB_WORKFLOW
+├─ "status of exec_xxx" / "did it work?"    → CHECK_KEEPERHUB_EXECUTION
+├─ "list my workflows"                      → LIST_KEEPERHUB_WORKFLOWS
+├─ "create v2 of wf_xxx"                    → KEEPERHUB_WORKFLOW_VERSION
+├─ "migrate wf_old to wf_new"               → KEEPERHUB_WORKFLOW_MIGRATE
+│
+├─ "send 0.01 ETH to 0x..."                 → KEEPERHUB_TRANSFER
+├─ "read balanceOf on 0x..."                → KEEPERHUB_CONTRACT_READ
+├─ "estimate gas for transfer on 0x..."     → KEEPERHUB_ESTIMATE_GAS
+├─ "if health < 1.2, repay" + JSON block    → KEEPERHUB_CHECK_AND_EXECUTE
+├─ "what chains are supported?"             → KEEPERHUB_LIST_CHAINS
+│
+├─ "supply USDC to Aave" + JSON block       → KEEPERHUB_PROTOCOL_ACTION
+├─ "bridge tokens to Base via Chainlink"    → KEEPERHUB_CHAINLINK_CCIP
+│
+├─ "send Discord notification: '...'"       → KEEPERHUB_NOTIFY
+├─ "register this agent on-chain"           → REGISTER_KEEPERHUB_AGENT
+├─ "what params does aave-v3/supply need?"  → KEEPERHUB_ACTION_SCHEMA
+└─ JS code block OR "sum these: 3.2, 4.1"  → KEEPERHUB_RUN_CODE
 ```
 
 ---
 
-### `GENERATE_KEEPERHUB_WORKFLOW`
+## All 17 actions
 
-**Triggered by:** Workflow-creation phrases — "create a workflow", "generate a workflow", "build a workflow", "automate", "create automation", "new workflow".
+### EXECUTE_KEEPERHUB_WORKFLOW
+**File:** `src/actions/execute-workflow.ts`
+**Trigger regex:** `/wf_[a-zA-Z0-9_-]{1,64}/` + execute/run/trigger/start intent
+**Input extraction:** workflow ID by regex; JSON from ` ```json ``` ` block
+**Security:** allowlist checked at validate + handler; JSON sanitized (round-trip strips `__proto__`); 8KB limit; 512-char value cap; null returned (not `{}`) when input too large
+**Callbacks:** `⚙️ Executing…` → `🔄 N/M: StepName…` → `✅ status + tx hash`
 
-**What it does:**
-1. Extracts intent from message (strips "create a workflow to", "automate", etc.)
-2. Enforces 1000-character prompt limit — rejects with message if exceeded
-3. If `execute: true` in action options AND `allowedWorkflowIds` is NOT set: generates and immediately executes
-4. If `allowedWorkflowIds` is set: generate-and-execute path is blocked (generated IDs not in the list)
-5. Uses `pipeline().generate().safeWait()` — `pending_approval` status is surfaced explicitly
-6. Emits progress callbacks during execution
+### GENERATE_KEEPERHUB_WORKFLOW
+**File:** `src/actions/generate-workflow.ts`
+**Trigger:** generate/create/build + description (no wf_ ID present)
+**Prompt capped** to 1000 chars; context to 500
+**Returns:** new wf_xxx ID, hint to execute, or auto-executes if `execute=true`
 
-**Trigger examples:**
+### LIST_KEEPERHUB_WORKFLOWS
+**File:** `src/actions/list-workflows.ts`
+**Trigger:** list/show/what/available + workflows
+**Security:** names sanitized before display (strips backtick, brackets, braces)
+
+### CHECK_KEEPERHUB_EXECUTION
+**File:** `src/actions/check-execution.ts`
+**Trigger:** exec_xxx / UUID + status/progress/done/logs
+**Security:** 404/403 returns generic "not found" — never reveals whether ID exists
+
+### KEEPERHUB_PAY_AND_RUN
+**File:** `src/actions/pay-and-run.ts`
+**Trigger:** wf_xxx + pay/paid/x402/mpp/usdc/budget
+**Extracts:** workflow ID, budget (`$0.05`, `budget: 1`), protocol (MPP default, x402 if explicit)
+**Uses:** `kh.pipeline().workflow(id).pay({ budget, preferMpp }).safeWait()`
+
+### KEEPERHUB_WORKFLOW_VERSION
+**File:** `src/actions/workflow-version.ts`
+**Trigger:** wf_xxx + version/v2/upgrade/duplicate/new version
+**Uses:** `kh.workflows.duplicate(workflowId)`
+**Returns:** original ID, new v2 ID, next steps
+
+### KEEPERHUB_WORKFLOW_MIGRATE
+**File:** `src/actions/workflow-version.ts`
+**Trigger:** two wf_xxx IDs + migrate/move funds/from.*to
+**Flow:** drain old (`_action: withdraw`) → activate new → report both results
+
+### KEEPERHUB_TRANSFER
+**File:** `src/actions/transfer.ts`
+**Trigger:** send/transfer + amount+symbol + 0x address
+**Extracts from NL:** amount (`0.01 ETH`), recipient (first 0x), network (name → chainId map), token (second 0x if present)
+**Default network:** Base (8453)
+**Returns execution_id** — poll with CHECK_KEEPERHUB_EXECUTION
+
+### KEEPERHUB_CONTRACT_READ
+**File:** `src/actions/contract-read.ts`
+**Trigger:** read/call/query/contract + function name + 0x address
+**Extracts:** contract (first 0x), function (from `call X`, backtick `X`, `function X`), args from `args: [...]`
+**Returns:** value immediately (no gas, view/pure)
+
+### KEEPERHUB_ESTIMATE_GAS
+**File:** `src/actions/estimate-gas.ts`
+**Trigger:** gas/cost/estimate/fee + 0x address
+**Returns:** gas units, ETH cost, USD cost, gas price
+
+### KEEPERHUB_CHECK_AND_EXECUTE
+**File:** `src/actions/check-and-execute.ts`
+**Trigger:** check/condition/if.*then/atomic + JSON block
+**Required JSON schema:**
+```json
+{ "network": "8453",
+  "check": { "contract": "0x...", "function": "fn", "args": [], "condition": { "operator": "lt", "value": "1.2e18" } },
+  "action": { "contract": "0x...", "function": "fn", "args": [] } }
 ```
-"Create a workflow to compound my Aave USDC rewards every Monday"
-"Generate a workflow that monitors my vault health factor"
-"Automate weekly portfolio rebalancing"
-"Build me an onchain automation for token swaps"
+Operators: `gt | lt | eq | neq | gte | lte`
+
+### KEEPERHUB_LIST_CHAINS
+**File:** `src/actions/list-chains.ts`
+**Trigger:** list/what/which/available + chains/networks/blockchain
+**Returns:** 20 chains split mainnets + testnets
+Key IDs: Ethereum=1, Base=8453, Polygon=137, Arbitrum=42161, Optimism=10, Tempo=4217
+
+### KEEPERHUB_PROTOCOL_ACTION
+**File:** `src/actions/protocol-action.ts`
+**Trigger:** protocol name (aave/uniswap/lido/compound/curve/morpho/yearn/aerodrome/cowswap/rocket-pool/pendle/sky/spark/ethena/safe) + action + JSON block
+**Required JSON:**
+```json
+{ "protocol": "aave-v3", "action": "supply",
+  "params": { "asset": "0xUSDC...", "amount": "1000000000", "onBehalfOf": "0xWallet" } }
+```
+**Key protocol/action pairs:**
+```
+aave-v3:     supply, withdraw, borrow, repay, repayWithATokens
+uniswap:     swap-exact-input, swap-exact-output
+lido:        wrap, unwrap
+compound-v3: supply, withdraw, borrow, repay
+curve:       exchange, add-liquidity, remove-liquidity
+morpho:      supply, withdraw, borrow, repay
+yearn-v3:    deposit, withdraw, redeem
+cowswap:     create-order
+rocket-pool: stake, unstake
+pendle:      swap, add-liquidity
+ajna:        get-borrower-info, get-auction-status, get-pool-lup, get-pool-htp
 ```
 
-**Callbacks emitted (generate only):**
-```
-"🧠 Generating KeeperHub workflow for: "compound my Aave USDC..."…"
-"✅ Workflow created: Weekly Compound
-🆔 ID: `wf_abc123`
-📝 Compounds USDC rewards on Aave v3 every Monday
-To run it, say: "Execute workflow wf_abc123""
-```
+### KEEPERHUB_CHAINLINK_CCIP
+**File:** `src/actions/chainlink-ccip.ts`
+**Trigger:** bridge/ccip/chainlink + send/transfer/cross-chain
+**Full flow:** get-fee → approve-bridge-token → approve-fee-token → send
+**Supported chains:** Ethereum(1), Base(8453), Arbitrum(42161), Optimism(10), Polygon(137), Avalanche(43114), BNB(56)
+**Uses AI pipeline** to generate multi-step CCIP workflow for ccip-send
 
-**Callbacks emitted (generate + execute):**
-```
-"🧠 Generating KeeperHub workflow for: "..."…"
-"🔄 1/2: Generate workflow spec…"
-"🔄 2/2: Execute on Aave…"
-"✅ Workflow generated and executed successfully!
-📋 Execution ID: `exec_abc`
-📊 Status: completed"
-```
+### KEEPERHUB_NOTIFY
+**File:** `src/actions/notify.ts`
+**Trigger:** notify/send/alert + discord/telegram/email/webhook
+**Path 1:** wf_xxx present → run that workflow with `{ message }` input
+**Path 2:** no wf_xxx → `kh.pipeline().generate("Send discord notification: ...").safeWait()`
+**Note:** Notifications are workflow node types — set up integrations at app.keeperhub.com first
 
-**`pending_approval` response:**
-```
-"⏸ Execution paused — payment approval required. Estimated cost: 0.05 USDC. Approval URL: https://..."
-```
+### REGISTER_KEEPERHUB_AGENT
+**File:** `src/actions/register-agent.ts`
+**Trigger:** register/identity/ERC-8004/on-chain
+**Idempotent:** checks existing registration before minting new NFT
+**Uses:** `kh.agent.ensureRegistered({ name, description, capabilities })`
+
+### KEEPERHUB_ACTION_SCHEMA
+**File:** `src/actions/action-schema.ts`
+**Trigger:** schema/params/what fields/how call + action name
+**Mode 1:** specific action (e.g. `` 'aave-v3/supply' ``) → required/optional/output fields
+**Mode 2:** keyword search → top 8 matches from all 396 actions
+**Uses:** `kh.mcp.getSchemas(query)`
+
+### KEEPERHUB_RUN_CODE
+**File:** `src/actions/run-code.ts`
+**Trigger (code):** ` ```js ``` ` code block
+**Trigger (math):** sum/average/median/max/min/product + numbers
+- Math: computed instantly (no API call)
+- Code: generates sandboxed workflow step (server-side VM, `fetch()` available)
 
 ---
 
-### `CHECK_KEEPERHUB_EXECUTION`
+## Providers
 
-**Triggered by:** Status-check phrases + execution ID.
-- Phrases: "check execution", "execution status", "status of execution", "what happened with", "how is execution", "get logs", "show logs"
-- ID formats: `exec_[a-zA-Z0-9_-]+` or UUID `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-
-**What it does:**
-- Fetches execution status and optional logs
-- Returns sanitized progress info
-- For auth/not-found errors: returns `"Execution not found or not accessible with your API key."` — does NOT reveal whether the ID exists (prevents enumeration)
-
-**Trigger examples:**
+### `wallet-provider` — `src/providers/wallet-provider.ts`
+Injected into every conversation turn:
 ```
-"Check execution status exec_abc123"
-"What happened with exec_xyz"
-"Show logs for exec_abc"
-"Get execution status for 550e8400-e29b-41d4-a716-446655440000"
+[KeeperHub Wallet]
+Address: 0x1234...abcd          ← truncated, not full address
+  ETH: 0.142 on Ethereum
+  USDC: 45.00 on Base           ← x402 payment ready ($45 budget)
+  USDC.e: 12.50 on Tempo        ← MPP payment ready ($12.50 budget)
 ```
+Zero-balance tokens omitted. Disable: `enableWalletProvider: false`.
 
-**Callbacks emitted:**
+### `workflows-provider` — `src/providers/workflows-provider.ts`
+Injected into every conversation turn:
 ```
-"✅ Execution `exec_abc123` — completed
-📊 Progress: 3/3 steps (100%)
-🔧 Current step: Complete
-```
-With logs:
-```
-✅ Execution `exec_abc123` — completed
-
-Step logs:
-✅ `Swap USDC` — completed (1240ms)
-✅ `Supply to Aave` — completed (3450ms)
-   🔗 tx: `0xabc...`"
-```
-
----
-
-### `LIST_KEEPERHUB_WORKFLOWS`
-
-**Triggered by:** Listing phrases — ("list" OR "show" OR "what" OR "available") AND ("workflow" OR "automation").
-
-**What it does:**
-- Fetches all workflows for the org
-- Returns up to 15 with name, ID, optional description
-- Tells user the exact phrase to execute any listed workflow
-
-**Callbacks emitted:**
-```
-"📋 5 workflows available:
-
-• Weekly Compound — `wf_abc`
-  Compounds USDC rewards on Aave every Monday
-• Portfolio Rebalance — `wf_xyz`
-  ...
-
-To run one, say: "Execute workflow wf_xxx""
-```
-
----
-
-### `REGISTER_KEEPERHUB_AGENT`
-
-**Triggered by:** ERC-8004 registration phrases — "register agent", "register on chain", "register onchain", "onchain identity", "erc-8004", "agent registry", "register myself".
-
-**What it does:**
-1. Calls `kh.agent.getRegistrations()` first to check for existing identity
-2. If already registered: returns existing identity, skips minting — NO duplicate NFT
-3. If not registered: calls `kh.agent.register()`, mints ERC-8004 NFT on-chain
-
-**Callbacks emitted (new registration):**
-```
-"🔗 Registering AgentName on-chain via KeeperHub ERC-8004 registry…"
-"✅ Agent registered on-chain!
-🆔 Agent ID: `agent_abc123`
-⛓ Chain ID: 1
-🔗 Transaction: `0xabc...`
-📅 Registered: 2026-04-25T14:23:00.000Z"
-```
-
-**Callbacks emitted (already registered):**
-```
-"✅ AgentName is already registered on-chain.
-🆔 Agent ID: `agent_abc123`
-⛓ Chain ID: 1
-📅 Originally registered: 2026-04-20T09:00:00.000Z"
-```
-
----
-
-## Context Providers
-
-Providers run on every incoming message and inject context into the agent's system prompt.
-
-### `wallet-provider`
-
-Injects:
-```
-KeeperHub Wallet:
-- Address: 0x1234...abcd   ← truncated, not full address
-- Provider: turnkey
-- Active: true
-
-Token Balances:
-- USDC: 45.23 (~$45.23)
-- ETH: 0.12 (~$380.00)
-```
-
-- Zero-balance tokens are filtered out
-- Address is truncated to `0xXXXX...xxxx` — full address not leaked into logs
-- On API failure: returns `"KeeperHub Wallet: (unavailable — check API key)"` — does not crash
-
-### `workflows-provider`
-
-Injects up to 20 workflows with sanitized names and descriptions:
-```
-KeeperHub Workflows (5 available):
-- Weekly Compound (ID: wf_abc): Compound USDC rewards every Monday
-- Portfolio Rebalance (ID: wf_xyz): Rebalance to target weights
+[KeeperHub Workflows — 36 available]
+- Rebalance ETH-USDC [wf_abc]: Swap ETH for USDC when ratio drops
+- Harvest Aave Rewards [wf_def]: Claim and compound yield
 ...
 ```
-
-- Names/descriptions sanitized: backticks, brackets, braces, backslashes removed, truncated to 80 chars
-- On API failure: returns `"KeeperHub Workflows: (unavailable — check API key)"` — does not crash
+Names sanitized. Shows up to 10. Disable: `enableWorkflowsProvider: false`.
 
 ---
 
-## Security Constraints
+## Evaluator
 
-| Constraint | Behavior |
-|---|---|
-| `allowedWorkflowIds` set | Only listed IDs can be executed; generate-and-execute path also blocked |
-| JSON input > 8KB | Rejected with user message, NOT silently dropped |
-| Prompt > 1000 chars | Rejected with user message |
-| `__proto__` in nested JSON input | Stripped via JSON round-trip before processing |
-| Workflow metadata in context | Sanitized before injection — prompt injection defense |
-| `getStatus` 404/401 | Returns generic "not found or not accessible" — no ID enumeration |
+### `KEEPERHUB_EXECUTION_SUCCESS` — `src/evaluators/execution-success.ts`
+Runs after every turn where execution IDs appear.
+- Polls up to 5 IDs per turn, skips non-terminal statuses
+- On terminal: stores fact in `runtime.messageManager` memory
+- Stored: `"KeeperHub execution exec_abc completed. TX: 0x..."`
+- Makes "did it work?" questions answer accurately from memory
+- Disable: `enableExecutionEvaluator: false`
 
 ---
 
-## Individual Factory Functions
-
-For custom plugin assembly without the full factory:
+## Individual exports for custom assembly
 
 ```typescript
 import {
-  createExecuteWorkflowAction,
-  createGenerateWorkflowAction,
-  createCheckExecutionAction,
-  createListWorkflowsAction,
-  createRegisterAgentAction,
-  createWalletProvider,
-  createWorkflowsProvider,
+  // Workflow
+  createListWorkflowsAction, createExecuteWorkflowAction,
+  createGenerateWorkflowAction, createCheckExecutionAction,
+  createRegisterAgentAction, createPayAndRunAction,
+  createWorkflowVersionAction, createWorkflowMigrateAction,
+  // Web3
+  createListChainsAction, createTransferAction,
+  createContractReadAction, createEstimateGasAction,
+  createCheckAndExecuteAction,
+  // Protocols
+  createProtocolActionElizaAction, createChainlinkCcipAction,
+  // Utility
+  createNotifyAction, createRunCodeAction, createActionSchemaAction,
+  // Providers & evaluators
+  createWalletProvider, createWorkflowsProvider,
+  createExecutionSuccessEvaluator,
 } from "@keeperhub/elizaos";
-import { KeeperHub } from "keeperhub-sdk";
-
-const kh = new KeeperHub({ apiKey: "kh_..." });
-const allowed = new Set(["wf_abc", "wf_xyz"]);
-
-const plugin = {
-  name: "custom-keeperhub",
-  actions: [
-    createExecuteWorkflowAction(kh, { allowedWorkflowIds: allowed }),
-    createGenerateWorkflowAction(kh, { allowedWorkflowIds: allowed }),
-    createCheckExecutionAction(kh),
-  ],
-  providers: [createWalletProvider(kh)],
-  evaluators: [],
-  services: [],
-};
 ```

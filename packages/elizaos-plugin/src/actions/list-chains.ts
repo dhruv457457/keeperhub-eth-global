@@ -11,18 +11,30 @@ export function createListChainsAction(kh: KeeperHub): Action {
   return {
     name: "KEEPERHUB_LIST_CHAINS",
     similes: [
-      "LIST_CHAINS", "SUPPORTED_CHAINS", "WHAT_CHAINS",
-      "WHICH_NETWORKS", "SUPPORTED_NETWORKS", "LIST_NETWORKS",
+      "LIST_CHAINS",
+      "SUPPORTED_CHAINS",
+      "WHAT_CHAINS",
+      "WHICH_NETWORKS",
+      "SUPPORTED_NETWORKS",
+      "LIST_NETWORKS",
     ],
     description:
       "List all blockchain networks that KeeperHub supports with their chain IDs and symbols.",
 
-    validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    validate: async (
+      _runtime: IAgentRuntime,
+      message: Memory
+    ): Promise<boolean> => {
       const text = (message.content?.text ?? "").toLowerCase();
       return (
-        (text.includes("chain") || text.includes("network") || text.includes("blockchain")) &&
-        (text.includes("list") || text.includes("support") || text.includes("which") ||
-          text.includes("what") || text.includes("available"))
+        (text.includes("chain") ||
+          text.includes("network") ||
+          text.includes("blockchain")) &&
+        (text.includes("list") ||
+          text.includes("support") ||
+          text.includes("which") ||
+          text.includes("what") ||
+          text.includes("available"))
       );
     },
 
@@ -36,18 +48,29 @@ export function createListChainsAction(kh: KeeperHub): Action {
       try {
         const chains = await kh.chains.list();
         const enabled = chains.filter(
-          (c) => !("isEnabled" in c) || (c as Record<string, unknown>)["isEnabled"] !== false
+          (c) =>
+            !("isEnabled" in c) ||
+            (c as Record<string, unknown>)["isEnabled"] !== false
         );
 
-        const mainnets = enabled.filter((c) => !(c as Record<string, unknown>)["isTestnet"]);
-        const testnets = enabled.filter((c) => (c as Record<string, unknown>)["isTestnet"]);
+        const mainnets = enabled.filter(
+          (c) => !(c as Record<string, unknown>)["isTestnet"]
+        );
+        const testnets = enabled.filter(
+          (c) => (c as Record<string, unknown>)["isTestnet"]
+        );
 
         const formatChain = (c: unknown): string => {
           const r = c as Record<string, unknown>;
           return `• **${r["name"]}** (${r["symbol"]}) — Chain ID: \`${r["chainId"]}\``;
         };
 
-        const lines = ["🌐 **Supported Networks:**", "", "**Mainnets:**", ...mainnets.map(formatChain)];
+        const lines = [
+          "🌐 **Supported Networks:**",
+          "",
+          "**Mainnets:**",
+          ...mainnets.map(formatChain),
+        ];
         if (testnets.length > 0) {
           lines.push("", "**Testnets:**", ...testnets.map(formatChain));
         }
@@ -55,14 +78,19 @@ export function createListChainsAction(kh: KeeperHub): Action {
         await callback?.({ text: lines.join("\n") });
         return true;
       } catch (err) {
-        await callback?.({ text: `❌ Failed to fetch chains: ${err instanceof Error ? err.message : String(err)}` });
+        await callback?.({
+          text: `❌ Failed to fetch chains: ${err instanceof Error ? err.message : String(err)}`,
+        });
         return false;
       }
     },
 
     examples: [
       [
-        { user: "{{user1}}", content: { text: "What chains does KeeperHub support?" } },
+        {
+          user: "{{user1}}",
+          content: { text: "What chains does KeeperHub support?" },
+        },
         {
           user: "{{agentName}}",
           content: {

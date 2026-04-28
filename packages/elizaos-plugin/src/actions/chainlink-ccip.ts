@@ -1,4 +1,10 @@
-import type { Action, HandlerCallback, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type {
+  Action,
+  HandlerCallback,
+  IAgentRuntime,
+  Memory,
+  State,
+} from "@elizaos/core";
 import { elizaLogger } from "@elizaos/core";
 import type { KeeperHub } from "keeperhub-sdk";
 
@@ -35,9 +41,16 @@ const CHAIN_SELECTORS: Record<string, string> = {
 
 function detectCcipAction(text: string): CcipAction {
   const lower = text.toLowerCase();
-  if (lower.includes("fee") || lower.includes("quote") || lower.includes("cost")) return "ccip-get-fee";
-  if (lower.includes("approve") && lower.includes("bridge")) return "ccip-approve-bridge-token";
-  if (lower.includes("approve") && lower.includes("fee")) return "ccip-approve-fee-token";
+  if (
+    lower.includes("fee") ||
+    lower.includes("quote") ||
+    lower.includes("cost")
+  )
+    return "ccip-get-fee";
+  if (lower.includes("approve") && lower.includes("bridge"))
+    return "ccip-approve-bridge-token";
+  if (lower.includes("approve") && lower.includes("fee"))
+    return "ccip-approve-fee-token";
   if (lower.includes("balance")) return "ccip-check-bridge-balance";
   return "ccip-send";
 }
@@ -56,7 +69,9 @@ function extractAddress(text: string): string | null {
 }
 
 function extractAmount(text: string): string | null {
-  const match = text.match(/\b(\d+(?:\.\d+)?)\s*(?:eth|usdc|link|token|tokens)?/i);
+  const match = text.match(
+    /\b(\d+(?:\.\d+)?)\s*(?:eth|usdc|link|token|tokens)?/i
+  );
   return match ? match[1] : null;
 }
 
@@ -64,21 +79,33 @@ export function createChainlinkCcipAction(kh: KeeperHub): Action {
   return {
     name: "KEEPERHUB_CHAINLINK_CCIP",
     similes: [
-      "CCIP_SEND", "CROSS_CHAIN_TRANSFER", "BRIDGE_TOKENS",
-      "CHAINLINK_BRIDGE", "CCIP_TRANSFER", "BRIDGE_CROSS_CHAIN",
+      "CCIP_SEND",
+      "CROSS_CHAIN_TRANSFER",
+      "BRIDGE_TOKENS",
+      "CHAINLINK_BRIDGE",
+      "CCIP_TRANSFER",
+      "BRIDGE_CROSS_CHAIN",
     ],
     description:
       "Send tokens cross-chain using Chainlink CCIP. " +
       "Supports Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, BNB. " +
       "Provide destination chain, recipient address, and amount.",
 
-    validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    validate: async (
+      _runtime: IAgentRuntime,
+      message: Memory
+    ): Promise<boolean> => {
       const text = (message.content?.text ?? "").toLowerCase();
       return (
-        (text.includes("ccip") || text.includes("chainlink") || text.includes("cross-chain") ||
+        (text.includes("ccip") ||
+          text.includes("chainlink") ||
+          text.includes("cross-chain") ||
           text.includes("bridge")) &&
-        (text.includes("send") || text.includes("transfer") || text.includes("bridge") ||
-          text.includes("fee") || text.includes("quote"))
+        (text.includes("send") ||
+          text.includes("transfer") ||
+          text.includes("bridge") ||
+          text.includes("fee") ||
+          text.includes("quote"))
       );
     },
 
@@ -97,7 +124,7 @@ export function createChainlinkCcipAction(kh: KeeperHub): Action {
         const receiver = extractAddress(text);
         const amount = extractAmount(text);
 
-        if (!destChain || !receiver) {
+        if (!(destChain && receiver)) {
           await callback?.({
             text: [
               "❌ For CCIP transfer I need: **destination chain**, **recipient address**, and **amount**.",
@@ -118,15 +145,20 @@ export function createChainlinkCcipAction(kh: KeeperHub): Action {
         const prompt = `Bridge ${amount ?? ""} tokens cross-chain using Chainlink CCIP to chain selector ${destChain}, recipient ${receiver}. Include approve-bridge-token and approve-fee-token steps before ccipSend.`;
 
         try {
-          const obs = await kh.pipeline().generate(prompt.slice(0, 1000)).safeWait();
+          const obs = await kh
+            .pipeline()
+            .generate(prompt.slice(0, 1000))
+            .safeWait();
           if (!obs.ok) {
-            await callback?.({ text: `❌ CCIP workflow failed: ${obs.error?.message}` });
+            await callback?.({
+              text: `❌ CCIP workflow failed: ${obs.error?.message}`,
+            });
             return false;
           }
           const r = obs.result as Record<string, unknown>;
           await callback?.({
             text: [
-              `✅ Chainlink CCIP transfer initiated!`,
+              "✅ Chainlink CCIP transfer initiated!",
               `🔑 Execution ID: \`${r?.["executionId"]}\``,
               `🌉 Destination: chain selector ${destChain}`,
               `📬 Recipient: \`${receiver}\``,
@@ -136,7 +168,9 @@ export function createChainlinkCcipAction(kh: KeeperHub): Action {
           return true;
         } catch (err) {
           elizaLogger.error(`[KeeperHub] CCIP send failed: ${err}`);
-          await callback?.({ text: `❌ CCIP failed: ${err instanceof Error ? err.message : String(err)}` });
+          await callback?.({
+            text: `❌ CCIP failed: ${err instanceof Error ? err.message : String(err)}`,
+          });
           return false;
         }
       }
@@ -145,24 +179,37 @@ export function createChainlinkCcipAction(kh: KeeperHub): Action {
       await callback?.({ text: `📊 Querying Chainlink CCIP (${ccipAction})…` });
 
       try {
-        const result = await kh.protocols.execute(`chainlink/${ccipAction}`, {});
+        const result = await kh.protocols.execute(
+          `chainlink/${ccipAction}`,
+          {}
+        );
         const r = result as Record<string, unknown>;
         await callback?.({
           text: `✅ CCIP ${ccipAction}: \`${JSON.stringify(r["result"] ?? result).slice(0, 200)}\``,
         });
         return true;
       } catch (err) {
-        await callback?.({ text: `❌ Failed: ${err instanceof Error ? err.message : String(err)}` });
+        await callback?.({
+          text: `❌ Failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
         return false;
       }
     },
 
     examples: [
       [
-        { user: "{{user1}}", content: { text: "Bridge 10 USDC to Base, send to 0xRecipient1234567890123456789012345678" } },
+        {
+          user: "{{user1}}",
+          content: {
+            text: "Bridge 10 USDC to Base, send to 0xRecipient1234567890123456789012345678",
+          },
+        },
         {
           user: "{{agentName}}",
-          content: { text: "🌉 Initiating Chainlink CCIP transfer to Base…", action: "KEEPERHUB_CHAINLINK_CCIP" },
+          content: {
+            text: "🌉 Initiating Chainlink CCIP transfer to Base…",
+            action: "KEEPERHUB_CHAINLINK_CCIP",
+          },
         },
       ],
     ],

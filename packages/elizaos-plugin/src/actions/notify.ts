@@ -1,4 +1,10 @@
-import type { Action, HandlerCallback, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type {
+  Action,
+  HandlerCallback,
+  IAgentRuntime,
+  Memory,
+  State,
+} from "@elizaos/core";
 import { elizaLogger } from "@elizaos/core";
 import type { KeeperHub } from "keeperhub-sdk";
 
@@ -29,7 +35,9 @@ function extractWorkflowId(text: string): string | null {
 function extractNotifyMessage(text: string): string {
   const quoted = text.match(/["']([^"']{3,400})["']/)?.[1];
   if (quoted) return quoted;
-  const labeled = text.match(/(?:message|say|notify|send)[:\s]+"?([^"]{3,300})"?/i)?.[1];
+  const labeled = text.match(
+    /(?:message|say|notify|send)[:\s]+"?([^"]{3,300})"?/i
+  )?.[1];
   if (labeled) return labeled.trim();
   // Fall back to full text (will be used as the notification content)
   return text.slice(0, 200);
@@ -39,21 +47,36 @@ export function createNotifyAction(kh: KeeperHub): Action {
   return {
     name: "KEEPERHUB_NOTIFY",
     similes: [
-      "SEND_NOTIFICATION", "NOTIFY", "SEND_DISCORD", "SEND_TELEGRAM",
-      "SEND_EMAIL", "ALERT", "SEND_ALERT", "SEND_MESSAGE", "SEND_WEBHOOK",
+      "SEND_NOTIFICATION",
+      "NOTIFY",
+      "SEND_DISCORD",
+      "SEND_TELEGRAM",
+      "SEND_EMAIL",
+      "ALERT",
+      "SEND_ALERT",
+      "SEND_MESSAGE",
+      "SEND_WEBHOOK",
     ],
     description:
       "Send a notification via Discord, Telegram, email (SendGrid), or webhook. " +
       "Either provide a workflow ID (wf_xxx) for an existing notification workflow, " +
       "or describe the notification and KeeperHub will generate + run one automatically.",
 
-    validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    validate: async (
+      _runtime: IAgentRuntime,
+      message: Memory
+    ): Promise<boolean> => {
       const text = (message.content?.text ?? "").toLowerCase();
       return (
-        (text.includes("notify") || text.includes("notification") ||
-          text.includes("alert") || text.includes("send") || text.includes("message")) &&
-        (text.includes("discord") || text.includes("telegram") ||
-          text.includes("email") || text.includes("webhook"))
+        (text.includes("notify") ||
+          text.includes("notification") ||
+          text.includes("alert") ||
+          text.includes("send") ||
+          text.includes("message")) &&
+        (text.includes("discord") ||
+          text.includes("telegram") ||
+          text.includes("email") ||
+          text.includes("webhook"))
       );
     },
 
@@ -83,16 +106,25 @@ export function createNotifyAction(kh: KeeperHub): Action {
             await callback?.({ text: `❌ ${obs.summary}` });
             return false;
           }
-          await callback?.({ text: `✅ Notification sent via \`${existingWorkflowId}\`!\n📝 "${notifyMessage.slice(0, 100)}"` });
+          await callback?.({
+            text: `✅ Notification sent via \`${existingWorkflowId}\`!\n📝 "${notifyMessage.slice(0, 100)}"`,
+          });
           return true;
         } catch (err) {
-          await callback?.({ text: `❌ Failed: ${err instanceof Error ? err.message : String(err)}` });
+          await callback?.({
+            text: `❌ Failed: ${err instanceof Error ? err.message : String(err)}`,
+          });
           return false;
         }
       }
 
       // Path 2: Generate a one-shot notification workflow via AI pipeline
-      const channelLabel = { discord: "Discord", telegram: "Telegram", email: "Email (SendGrid)", webhook: "Webhook" }[channel];
+      const channelLabel = {
+        discord: "Discord",
+        telegram: "Telegram",
+        email: "Email (SendGrid)",
+        webhook: "Webhook",
+      }[channel];
       await callback?.({
         text: `🤖 Generating a ${channelLabel} notification workflow and sending…`,
       });
@@ -100,19 +132,18 @@ export function createNotifyAction(kh: KeeperHub): Action {
       try {
         const prompt = `Send a ${channel} notification with this message: "${notifyMessage.slice(0, 500)}". Use the configured ${channel} integration.`;
 
-        const obs = await kh
-          .pipeline()
-          .generate(prompt)
-          .safeWait();
+        const obs = await kh.pipeline().generate(prompt).safeWait();
 
         if (!obs.ok) {
-          elizaLogger.error(`[KeeperHub] Notification generation failed: ${obs.error?.message}`);
+          elizaLogger.error(
+            `[KeeperHub] Notification generation failed: ${obs.error?.message}`
+          );
           await callback?.({
             text: [
               `❌ Could not auto-generate notification workflow: ${obs.error?.message}`,
-              ``,
+              "",
               `💡 **To set up ${channelLabel} notifications:**`,
-              `1. Go to app.keeperhub.com → Workflows → New`,
+              "1. Go to app.keeperhub.com → Workflows → New",
               `2. Add a ${channelLabel} node with your message`,
               `3. Save the workflow, then use its ID here: \`notify wf_yourId "your message"\``,
             ].join("\n"),
@@ -140,17 +171,33 @@ export function createNotifyAction(kh: KeeperHub): Action {
 
     examples: [
       [
-        { user: "{{user1}}", content: { text: "Send a Discord notification: 'Rebalance complete'" } },
+        {
+          user: "{{user1}}",
+          content: {
+            text: "Send a Discord notification: 'Rebalance complete'",
+          },
+        },
         {
           user: "{{agentName}}",
-          content: { text: "🤖 Generating a Discord notification workflow and sending…", action: "KEEPERHUB_NOTIFY" },
+          content: {
+            text: "🤖 Generating a Discord notification workflow and sending…",
+            action: "KEEPERHUB_NOTIFY",
+          },
         },
       ],
       [
-        { user: "{{user1}}", content: { text: "Send Discord notification wf_notify123 'Portfolio rebalanced'" } },
+        {
+          user: "{{user1}}",
+          content: {
+            text: "Send Discord notification wf_notify123 'Portfolio rebalanced'",
+          },
+        },
         {
           user: "{{agentName}}",
-          content: { text: "📤 Running notification workflow `wf_notify123`…", action: "KEEPERHUB_NOTIFY" },
+          content: {
+            text: "📤 Running notification workflow `wf_notify123`…",
+            action: "KEEPERHUB_NOTIFY",
+          },
         },
       ],
     ],

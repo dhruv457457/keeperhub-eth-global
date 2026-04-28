@@ -1,25 +1,28 @@
 import type { Plugin } from "@elizaos/core";
-import { KeeperHub } from "keeperhub-sdk";
 import type { KeeperHubConfig } from "keeperhub-sdk";
+import { KeeperHub } from "keeperhub-sdk";
+import { createActionSchemaAction } from "./actions/action-schema.js";
+import { createChainlinkCcipAction } from "./actions/chainlink-ccip.js";
 import { createCheckAndExecuteAction } from "./actions/check-and-execute.js";
 import { createCheckExecutionAction } from "./actions/check-execution.js";
 import { createContractReadAction } from "./actions/contract-read.js";
+import { createEstimateGasAction } from "./actions/estimate-gas.js";
 import type { ExecuteWorkflowActionOptions } from "./actions/execute-workflow.js";
 import { createExecuteWorkflowAction } from "./actions/execute-workflow.js";
-import { createEstimateGasAction } from "./actions/estimate-gas.js";
 import type { GenerateWorkflowActionOptions } from "./actions/generate-workflow.js";
 import { createGenerateWorkflowAction } from "./actions/generate-workflow.js";
 import { createListChainsAction } from "./actions/list-chains.js";
 import { createListWorkflowsAction } from "./actions/list-workflows.js";
-import { createChainlinkCcipAction } from "./actions/chainlink-ccip.js";
 import { createNotifyAction } from "./actions/notify.js";
 import { createPayAndRunAction } from "./actions/pay-and-run.js";
 import { createProtocolActionElizaAction } from "./actions/protocol-action.js";
-import { createRunCodeAction } from "./actions/run-code.js";
-import { createActionSchemaAction } from "./actions/action-schema.js";
-import { createWorkflowVersionAction, createWorkflowMigrateAction } from "./actions/workflow-version.js";
 import { createRegisterAgentAction } from "./actions/register-agent.js";
+import { createRunCodeAction } from "./actions/run-code.js";
 import { createTransferAction } from "./actions/transfer.js";
+import {
+  createWorkflowMigrateAction,
+  createWorkflowVersionAction,
+} from "./actions/workflow-version.js";
 import { createExecutionSuccessEvaluator } from "./evaluators/execution-success.js";
 import { createWalletProvider } from "./providers/wallet-provider.js";
 import { createWorkflowsProvider } from "./providers/workflows-provider.js";
@@ -111,7 +114,9 @@ export function createKeeperHubPlugin(
   // Build the KeeperHub client — falls back to KEEPERHUB_API_KEY env var
   const kh = new KeeperHub(config);
 
-  const allowedIds = allowedWorkflowIds ? new Set(allowedWorkflowIds) : undefined;
+  const allowedIds = allowedWorkflowIds
+    ? new Set(allowedWorkflowIds)
+    : undefined;
 
   const executeOptions: ExecuteWorkflowActionOptions = {
     allowedWorkflowIds: allowedIds,

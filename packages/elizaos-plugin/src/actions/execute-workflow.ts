@@ -12,7 +12,7 @@ import type { KeeperHub } from "keeperhub-sdk";
 
 const MAX_INPUT_KEYS = 20;
 const MAX_INPUT_VALUE_LEN = 512;
-const MAX_TOTAL_INPUT_BYTES = 8_192;
+const MAX_TOTAL_INPUT_BYTES = 8192;
 
 /**
  * Sanitizes a parsed JSON object so it's safe to pass as workflow input.
@@ -37,7 +37,11 @@ function sanitizeInput(raw: unknown): Record<string, unknown> | null {
   } catch {
     return {};
   }
-  if (cleaned === null || typeof cleaned !== "object" || Array.isArray(cleaned)) {
+  if (
+    cleaned === null ||
+    typeof cleaned !== "object" ||
+    Array.isArray(cleaned)
+  ) {
     return {};
   }
 
@@ -45,7 +49,9 @@ function sanitizeInput(raw: unknown): Record<string, unknown> | null {
   const result: Record<string, unknown> = {};
   let count = 0;
 
-  for (const [key, value] of Object.entries(cleaned as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(
+    cleaned as Record<string, unknown>
+  )) {
     if (blocked.has(key)) continue;
     if (count >= MAX_INPUT_KEYS) break;
 
@@ -54,7 +60,9 @@ function sanitizeInput(raw: unknown): Record<string, unknown> | null {
     const strVal =
       typeof value === "string"
         ? value.slice(0, MAX_INPUT_VALUE_LEN)
-        : typeof value === "number" || typeof value === "boolean" || value === null
+        : typeof value === "number" ||
+            typeof value === "boolean" ||
+            value === null
           ? value
           : String(JSON.stringify(value)).slice(0, MAX_INPUT_VALUE_LEN);
 
@@ -93,7 +101,9 @@ function extractWorkflowId(text: string): string | null {
  * - `null` if JSON was found but exceeds MAX_TOTAL_INPUT_BYTES (hard rejection)
  * - `undefined` if no JSON block was found in the message
  */
-function extractJsonInput(text: string): Record<string, unknown> | null | undefined {
+function extractJsonInput(
+  text: string
+): Record<string, unknown> | null | undefined {
   // Only extract from explicit code blocks — never from bare text
   // This prevents accidental extraction of non-input JSON from the message
   const jsonBlock = text.match(/```json\s*([\s\S]*?)\s*```/)?.[1];
@@ -172,13 +182,17 @@ export function createExecuteWorkflowAction(
       const workflowId = extractWorkflowId(text);
 
       if (!workflowId) {
-        await callback?.({ text: "I couldn't find a workflow ID. Include a workflow ID like `wf_abc123`." });
+        await callback?.({
+          text: "I couldn't find a workflow ID. Include a workflow ID like `wf_abc123`.",
+        });
         return false;
       }
 
       // Double-check allowlist in handler too (defense-in-depth)
       if (allowedIds && !allowedIds.has(workflowId)) {
-        await callback?.({ text: `Workflow \`${workflowId}\` is not in the allowed list.` });
+        await callback?.({
+          text: `Workflow \`${workflowId}\` is not in the allowed list.`,
+        });
         return false;
       }
 
@@ -212,7 +226,8 @@ export function createExecuteWorkflowAction(
           timeout: 120_000,
           onProgress: (status) => {
             if (status.progress) {
-              const { completedSteps, totalSteps, currentNodeName } = status.progress;
+              const { completedSteps, totalSteps, currentNodeName } =
+                status.progress;
               const stepMsg = currentNodeName ?? `step ${completedSteps}`;
               if (stepMsg !== lastProgressStep) {
                 lastProgressStep = stepMsg;
@@ -238,7 +253,11 @@ export function createExecuteWorkflowAction(
 
       const result = obs.result!;
       const statusEmoji =
-        result.status === "completed" ? "✅" : result.status === "failed" ? "❌" : "⚠️";
+        result.status === "completed"
+          ? "✅"
+          : result.status === "failed"
+            ? "❌"
+            : "⚠️";
 
       const messageText = [
         `${statusEmoji} Workflow \`${workflowId}\` finished with status **${result.status}**.`,
@@ -271,7 +290,9 @@ export function createExecuteWorkflowAction(
       [
         {
           user: "{{user1}}",
-          content: { text: "Execute wf_xyz\n```json\n{\"amount\": \"100\", \"token\": \"USDC\"}\n```" },
+          content: {
+            text: 'Execute wf_xyz\n```json\n{"amount": "100", "token": "USDC"}\n```',
+          },
         },
         {
           user: "{{agentName}}",

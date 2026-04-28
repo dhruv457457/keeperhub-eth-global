@@ -75,7 +75,7 @@ export function createRegisterAgentAction(kh: KeeperHub): Action {
           text: [
             alreadyRegistered
               ? `✅ **${agentName}** is already registered on-chain.`
-              : `✅ Agent registered on-chain!`,
+              : "✅ Agent registered on-chain!",
             `🆔 Agent ID: \`${registration.agentId}\``,
             `⛓ Chain ID: ${registration.chainId}`,
             !alreadyRegistered && registration.txHash

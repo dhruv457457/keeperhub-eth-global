@@ -23,7 +23,7 @@ export function createWorkflowsProvider(kh: KeeperHub): Provider {
         // Sanitize names/descriptions before injecting into agent context
         // to prevent prompt injection via malicious workflow metadata
         const sanitize = (s: string) =>
-          s.replace(/[`\[\]{}\\]/g, "").slice(0, 80);
+          s.replace(/[`[\]{}\\]/g, "").slice(0, 80);
 
         const wfList = workflows
           .slice(0, 20)
@@ -36,14 +36,14 @@ export function createWorkflowsProvider(kh: KeeperHub): Provider {
         return [
           `KeeperHub Workflows (${workflows.length} available):`,
           wfList,
-          workflows.length > 20
-            ? `…and ${workflows.length - 20} more.`
-            : null,
+          workflows.length > 20 ? `…and ${workflows.length - 20} more.` : null,
         ]
           .filter(Boolean)
           .join("\n");
       } catch (err) {
-        elizaLogger.warn(`[KeeperHub] Workflows provider failed: ${err instanceof Error ? err.message : String(err)}`);
+        elizaLogger.warn(
+          `[KeeperHub] Workflows provider failed: ${err instanceof Error ? err.message : String(err)}`
+        );
         return "KeeperHub Workflows: (unavailable — check API key)";
       }
     },

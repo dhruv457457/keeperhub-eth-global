@@ -81,7 +81,8 @@ export function createGenerateWorkflowAction(
       // If an allowlist is configured, block immediate execution of generated workflows.
       // A freshly generated workflow ID won't be in the allowlist, so auto-running it
       // would silently bypass the access control the allowlist is meant to enforce.
-      const shouldExecute = handlerOptions?.execute === true && !options.allowedWorkflowIds?.size;
+      const shouldExecute =
+        handlerOptions?.execute === true && !options.allowedWorkflowIds?.size;
 
       const MAX_PROMPT = 1000;
       if (prompt.length > MAX_PROMPT) {
@@ -106,11 +107,14 @@ export function createGenerateWorkflowAction(
               timeout: 120_000,
               onProgress: (status) => {
                 if (status.progress) {
-                  const { completedSteps, totalSteps, currentNodeName } = status.progress;
+                  const { completedSteps, totalSteps, currentNodeName } =
+                    status.progress;
                   const stepMsg = currentNodeName ?? `step ${completedSteps}`;
                   if (stepMsg !== lastProgressStep) {
                     lastProgressStep = stepMsg;
-                    void callback?.({ text: `🔄 ${completedSteps}/${totalSteps}: ${stepMsg}…` });
+                    void callback?.({
+                      text: `🔄 ${completedSteps}/${totalSteps}: ${stepMsg}…`,
+                    });
                   }
                 }
               },
@@ -131,7 +135,7 @@ export function createGenerateWorkflowAction(
 
           await callback?.({
             text: [
-              `✅ Workflow generated and executed successfully!`,
+              "✅ Workflow generated and executed successfully!",
               `📋 Execution ID: \`${result.executionId ?? "pending"}\``,
               `📊 Status: **${result.status}**`,
             ].join("\n"),
@@ -153,7 +157,7 @@ export function createGenerateWorkflowAction(
             `✅ Workflow created: **${saved.name}**`,
             `🆔 ID: \`${saved.id}\``,
             saved.description ? `📝 ${saved.description}` : null,
-            ``,
+            "",
             `To run it, say: *"Execute workflow ${saved.id}"*`,
           ]
             .filter(Boolean)
@@ -185,7 +189,7 @@ export function createGenerateWorkflowAction(
         {
           user: "{{agentName}}",
           content: {
-            text: "🧠 Generating KeeperHub workflow for: *\"compound my Aave USDC rewards every Monday\"*…",
+            text: '🧠 Generating KeeperHub workflow for: *"compound my Aave USDC rewards every Monday"*…',
             action: "GENERATE_KEEPERHUB_WORKFLOW",
           },
         },

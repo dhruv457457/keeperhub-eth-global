@@ -28,7 +28,8 @@ export function createListWorkflowsAction(kh: KeeperHub): Action {
       "AVAILABLE_WORKFLOWS",
       "MY_WORKFLOWS",
     ],
-    description: "List all available KeeperHub workflows the agent can execute.",
+    description:
+      "List all available KeeperHub workflows the agent can execute.",
 
     validate: async (
       _runtime: IAgentRuntime,
@@ -49,7 +50,7 @@ export function createListWorkflowsAction(kh: KeeperHub): Action {
 
         if (workflows.length === 0) {
           await callback?.({
-            text: "📋 No workflows found. You can create one by saying *\"Create a workflow to...\"*",
+            text: '📋 No workflows found. You can create one by saying *"Create a workflow to..."*',
           });
           return true;
         }
@@ -69,7 +70,7 @@ export function createListWorkflowsAction(kh: KeeperHub): Action {
           lines.push(`\n_…and ${workflows.length - 15} more._`);
         }
 
-        lines.push("\nTo run one, say: *\"Execute workflow wf_xxx\"*");
+        lines.push('\nTo run one, say: *"Execute workflow wf_xxx"*');
 
         await callback?.({ text: lines.join("\n") });
         return true;

@@ -21,9 +21,8 @@ export function createWalletProvider(kh: KeeperHub): Provider {
 
         // Truncate address to 0x1234...abcd to avoid leaking full address into logs/context
         const addr = wallet.address ?? "";
-        const shortAddr = addr.length > 10
-          ? `${addr.slice(0, 6)}...${addr.slice(-4)}`
-          : addr;
+        const shortAddr =
+          addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
 
         const topBalances = balances
           .filter((b) => Number(b.balance) > 0)
@@ -35,7 +34,7 @@ export function createWalletProvider(kh: KeeperHub): Provider {
           .join("\n");
 
         return [
-          `KeeperHub Wallet:`,
+          "KeeperHub Wallet:",
           `- Address: ${shortAddr}`,
           `- Provider: ${wallet.provider}`,
           `- Active: ${wallet.isActive}`,
@@ -44,7 +43,9 @@ export function createWalletProvider(kh: KeeperHub): Provider {
             : "No balances loaded.",
         ].join("\n");
       } catch (err) {
-        elizaLogger.warn(`[KeeperHub] Wallet provider failed: ${err instanceof Error ? err.message : String(err)}`);
+        elizaLogger.warn(
+          `[KeeperHub] Wallet provider failed: ${err instanceof Error ? err.message : String(err)}`
+        );
         return "KeeperHub Wallet: (unavailable — check API key)";
       }
     },
