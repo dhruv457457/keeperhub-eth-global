@@ -16,51 +16,63 @@
  * const kh = new KeeperHub({ apiKey: "..." });
  * const tools = [createExecuteWorkflowTool(kh), createGenerateWorkflowTool(kh)];
  */
-export { KeeperHubToolkit } from "./toolkit.js";
+
 export type { KeeperHubToolkitOptions, ToolKey } from "./toolkit.js";
-
-// Chain & contract tools
-export { createListChainsTool } from "./tools/list-chains.js";
-export { createFetchAbiTool } from "./tools/fetch-abi.js";
-
-// Web3 execution tools
-export { createTransferTool } from "./tools/transfer.js";
-export { createContractCallTool } from "./tools/contract-call.js";
-export { createCheckAndExecuteTool } from "./tools/check-and-execute.js";
-export { createEstimateGasTool } from "./tools/estimate-gas.js";
-
-// Workflow tools
-export { createListWorkflowsTool } from "./tools/list-workflows.js";
-export { createExecuteWorkflowTool } from "./tools/execute-workflow.js";
-export { createGenerateWorkflowTool } from "./tools/generate-workflow.js";
-export { createCheckExecutionTool } from "./tools/check-execution.js";
-
-// DeFi protocol tools
-export { createProtocolActionTool, createListProtocolsTool } from "./tools/protocol-action.js";
-
-// Payment tools (x402 / MPP)
-export { createPayAndRunTool } from "./tools/pay-and-run.js";
-
-// Agent identity & wallet tools
-export { createRegisterAgentTool } from "./tools/register-agent.js";
-export { createWalletBalanceTool } from "./tools/wallet-balance.js";
-export { createProvisionWalletTool } from "./tools/provision-wallet.js";
-
-// Notification tools
-export { createNotifyTool, createListIntegrationsTool } from "./tools/notify.js";
-
-// Chainlink tools
-export { createChainlinkCcipTool, createChainlinkPriceFeedTool } from "./tools/chainlink.js";
-
+export { KeeperHubToolkit } from "./toolkit.js";
+// Action schema discovery tools
+export {
+  createGetActionSchemaTool,
+  createSearchActionsTool,
+} from "./tools/action-schema.js";
 // Ajna protocol tool
 export { createAjnaTool } from "./tools/ajna.js";
-
+// Chainlink tools
+export {
+  createChainlinkCcipTool,
+  createChainlinkPriceFeedTool,
+} from "./tools/chainlink.js";
+export { createCheckAndExecuteTool } from "./tools/check-and-execute.js";
+export { createCheckExecutionTool } from "./tools/check-execution.js";
 // Utility plugin tools
 export { createCodeExecuteTool } from "./tools/code-execute.js";
+export { createContractCallTool } from "./tools/contract-call.js";
+// ENS tools
+export {
+  createEnsLookupTool,
+  createEnsResolveTool,
+  createEnsTextRecordTool,
+} from "./tools/ens.js";
+export { createEstimateGasTool } from "./tools/estimate-gas.js";
+export { createExecuteWorkflowTool } from "./tools/execute-workflow.js";
+export { createFetchAbiTool } from "./tools/fetch-abi.js";
+export { createGenerateWorkflowTool } from "./tools/generate-workflow.js";
+// Chain & contract tools
+export { createListChainsTool } from "./tools/list-chains.js";
+// Workflow tools
+export { createListWorkflowsTool } from "./tools/list-workflows.js";
 export { createMathAggregateTool } from "./tools/math-aggregate.js";
 
-// Action schema discovery tools
-export { createGetActionSchemaTool, createSearchActionsTool } from "./tools/action-schema.js";
-
+// Notification tools
+export {
+  createListIntegrationsTool,
+  createNotifyTool,
+} from "./tools/notify.js";
+// Payment tools (x402 / MPP)
+export { createPayAndRunTool } from "./tools/pay-and-run.js";
+// DeFi protocol tools
+export {
+  createListProtocolsTool,
+  createProtocolActionTool,
+} from "./tools/protocol-action.js";
+export { createProvisionWalletTool } from "./tools/provision-wallet.js";
+// Agent identity & wallet tools
+export { createRegisterAgentTool } from "./tools/register-agent.js";
+// Web3 execution tools
+export { createTransferTool } from "./tools/transfer.js";
+export { createWalletBalanceTool } from "./tools/wallet-balance.js";
 // Workflow versioning & migration tools
-export { createWorkflowVersionTool, createWorkflowMigrateTool, createWorkflowGoLiveTool } from "./tools/workflow-migrate.js";
+export {
+  createWorkflowGoLiveTool,
+  createWorkflowMigrateTool,
+  createWorkflowVersionTool,
+} from "./tools/workflow-migrate.js";

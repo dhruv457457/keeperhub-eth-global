@@ -16,8 +16,15 @@ export function createFetchAbiTool(kh: KeeperHub): DynamicStructuredTool {
       "to return the implementation ABI. " +
       "Use this before calling a contract to discover its available functions.",
     schema: z.object({
-      chainId: z.number().int().positive().describe("Chain ID (e.g. 8453 for Base, 1 for Ethereum)"),
-      contractAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/, "Must be a valid 0x address").describe("Smart contract address (0x...)"),
+      chainId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Chain ID (e.g. 8453 for Base, 1 for Ethereum)"),
+      contractAddress: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{40}$/, "Must be a valid 0x address")
+        .describe("Smart contract address (0x...)"),
     }),
     func: async ({ chainId, contractAddress }) => {
       try {

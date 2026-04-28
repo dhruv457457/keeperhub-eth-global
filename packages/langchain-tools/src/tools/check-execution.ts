@@ -10,7 +10,9 @@ const CheckExecutionSchema = z.object({
       /^(exec_[a-zA-Z0-9_-]{1,64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
       "Invalid execution ID — expected exec_xxx or a UUID"
     )
-    .describe("The KeeperHub execution ID to check (e.g., exec_abc123 or UUID)"),
+    .describe(
+      "The KeeperHub execution ID to check (e.g., exec_abc123 or UUID)"
+    ),
   includeLogs: z
     .boolean()
     .optional()
@@ -30,7 +32,9 @@ export function createCheckExecutionTool(kh: KeeperHub): DynamicStructuredTool {
       try {
         const [status, logs] = await Promise.all([
           kh.executions.getStatus(executionId),
-          includeLogs ? kh.executions.getLogs(executionId) : Promise.resolve(undefined),
+          includeLogs
+            ? kh.executions.getLogs(executionId)
+            : Promise.resolve(undefined),
         ]);
 
         return JSON.stringify({
@@ -50,13 +54,19 @@ export function createCheckExecutionTool(kh: KeeperHub): DynamicStructuredTool {
       } catch (err) {
         // Return a string (never throw) — LangChain tools surface errors as text
         // Don't reveal whether an ID exists vs. access is denied to prevent enumeration
-        if (err instanceof KeeperHubAuthError || err instanceof KeeperHubNotFoundError) {
+        if (
+          err instanceof KeeperHubAuthError ||
+          err instanceof KeeperHubNotFoundError
+        ) {
           return JSON.stringify({
             error: "Execution not found or not accessible with your API key.",
           });
         }
         return JSON.stringify({
-          error: err instanceof Error ? err.message : "Failed to check execution status",
+          error:
+            err instanceof Error
+              ? err.message
+              : "Failed to check execution status",
         });
       }
     },

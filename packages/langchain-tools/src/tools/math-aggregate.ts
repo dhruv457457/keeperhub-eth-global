@@ -5,15 +5,14 @@ import { z } from "zod";
 /**
  * Math aggregation via KeeperHub's Math plugin.
  * Performs sum/count/average/median/min/max/product across arrays or workflow outputs.
- * Use inside multi-step workflows to aggregate DeFi data (pool TVLs, rates, balances).
  */
-export function createMathAggregateTool(kh: KeeperHub): DynamicStructuredTool {
+export function createMathAggregateTool(_kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_math_aggregate",
     description:
       "Perform math aggregation operations on numeric values using KeeperHub's Math plugin. " +
       "Operations: sum, count, average, median, min, max, product. " +
-      "Useful for aggregating DeFi data — total TVL, average APY, portfolio value, etc. " +
+      "Useful for aggregating DeFi data: total TVL, average APY, portfolio value, etc. " +
       "Returns the aggregated result.",
     schema: z.object({
       operation: z
@@ -28,38 +27,44 @@ export function createMathAggregateTool(kh: KeeperHub): DynamicStructuredTool {
         .string()
         .max(200)
         .optional()
-        .describe("What these values represent e.g. 'APY rates across 3 Aave pools'"),
+        .describe(
+          "What these values represent e.g. 'APY rates across 3 Aave pools'"
+        ),
     }),
     func: async ({ operation, values, description }) => {
-      // For simple math, compute client-side and return immediately
-      // For complex workflow math (template variables from upstream steps), use pipeline
       try {
+        const numericValues = values as number[];
+        const sorted = [...numericValues].sort((a: number, b: number) => a - b);
         let result: number;
-        const sorted = [...values].sort((a, b) => a - b);
 
         switch (operation) {
           case "sum":
-            result = values.reduce((a, b) => a + b, 0);
+            result = numericValues.reduce((a: number, b: number) => a + b, 0);
             break;
           case "count":
-            result = values.length;
+            result = numericValues.length;
             break;
           case "average":
-            result = values.reduce((a, b) => a + b, 0) / values.length;
+            result =
+              numericValues.reduce((a: number, b: number) => a + b, 0) /
+              numericValues.length;
             break;
           case "median":
-            result = values.length % 2 === 0
-              ? (sorted[values.length / 2 - 1] + sorted[values.length / 2]) / 2
-              : sorted[Math.floor(values.length / 2)];
+            result =
+              numericValues.length % 2 === 0
+                ? (sorted[numericValues.length / 2 - 1] +
+                    sorted[numericValues.length / 2]) /
+                  2
+                : sorted[Math.floor(numericValues.length / 2)];
             break;
           case "min":
-            result = Math.min(...values);
+            result = Math.min(...numericValues);
             break;
           case "max":
-            result = Math.max(...values);
+            result = Math.max(...numericValues);
             break;
           case "product":
-            result = values.reduce((a, b) => a * b, 1);
+            result = numericValues.reduce((a: number, b: number) => a * b, 1);
             break;
           default:
             result = 0;
@@ -69,9 +74,14 @@ export function createMathAggregateTool(kh: KeeperHub): DynamicStructuredTool {
           ok: true,
           operation,
           result,
-          input_count: values.length,
-          description: description ?? `${operation} of ${values.length} values`,
-          summary: `${operation}(${values.slice(0, 3).join(", ")}${values.length > 3 ? `… +${values.length - 3} more` : ""}) = ${result}`,
+          input_count: numericValues.length,
+          description:
+            description ?? `${operation} of ${numericValues.length} values`,
+          summary: `${operation}(${numericValues.slice(0, 3).join(", ")}${
+            numericValues.length > 3
+              ? `... +${numericValues.length - 3} more`
+              : ""
+          }) = ${result}`,
         });
       } catch (err) {
         return JSON.stringify({ ok: false, error: String(err) });

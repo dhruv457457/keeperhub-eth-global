@@ -35,8 +35,8 @@ export function createAjnaTool(kh: KeeperHub): DynamicStructuredTool {
         .default({})
         .describe(
           "Action parameters. For get-borrower-info: { pool, borrower }. " +
-          "For get-auction-status: { pool, borrower }. " +
-          "For price-to-index / index-to-price: { price } or { index }."
+            "For get-auction-status: { pool, borrower }. " +
+            "For price-to-index / index-to-price: { price } or { index }."
         ),
     }),
     func: async ({ action, params }) => {
@@ -50,7 +50,11 @@ export function createAjnaTool(kh: KeeperHub): DynamicStructuredTool {
           execution_id: r["executionId"],
         });
       } catch (err) {
-        return JSON.stringify({ ok: false, action: `ajna/${action}`, error: String(err) });
+        return JSON.stringify({
+          ok: false,
+          action: `ajna/${action}`,
+          error: String(err),
+        });
       }
     },
   });

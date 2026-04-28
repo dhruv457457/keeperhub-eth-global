@@ -28,8 +28,8 @@ export function createCodeExecuteTool(kh: KeeperHub): DynamicStructuredTool {
         .max(10_000)
         .describe(
           "JavaScript code to execute. Use return to return a value. " +
-          "fetch() is available for HTTP calls. " +
-          "Example: 'return { result: inputs.amount * 1.05, fee: inputs.amount * 0.05 }'"
+            "fetch() is available for HTTP calls. " +
+            "Example: 'return { result: inputs.amount * 1.05, fee: inputs.amount * 0.05 }'"
         ),
       inputs: z
         .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
@@ -39,7 +39,9 @@ export function createCodeExecuteTool(kh: KeeperHub): DynamicStructuredTool {
         .string()
         .max(100)
         .optional()
-        .describe("Name for the generated workflow (default: 'Code Execution')"),
+        .describe(
+          "Name for the generated workflow (default: 'Code Execution')"
+        ),
     }),
     func: async ({ code, inputs, workflowName }) => {
       try {

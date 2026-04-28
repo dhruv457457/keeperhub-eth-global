@@ -33,7 +33,9 @@ export function createNotifyTool(kh: KeeperHub): DynamicStructuredTool {
         .string()
         .regex(/^wf_[a-zA-Z0-9_-]{1,64}$/)
         .optional()
-        .describe("Optional: existing notification workflow ID (wf_xxx). If omitted, auto-generates one."),
+        .describe(
+          "Optional: existing notification workflow ID (wf_xxx). If omitted, auto-generates one."
+        ),
       subject: z
         .string()
         .max(200)
@@ -43,7 +45,9 @@ export function createNotifyTool(kh: KeeperHub): DynamicStructuredTool {
         .string()
         .url()
         .optional()
-        .describe("Webhook URL (webhook channel only, if not using a saved integration)"),
+        .describe(
+          "Webhook URL (webhook channel only, if not using a saved integration)"
+        ),
     }),
     func: async ({ channel, message, workflowId, subject, webhookUrl }) => {
       try {
@@ -54,12 +58,18 @@ export function createNotifyTool(kh: KeeperHub): DynamicStructuredTool {
             wait: true,
           });
           if (!obs.ok) {
-            return JSON.stringify({ ok: false, summary: obs.summary, error: obs.error?.message });
+            return JSON.stringify({
+              ok: false,
+              summary: obs.summary,
+              error: obs.error?.message,
+            });
           }
           return JSON.stringify({
             ok: true,
             summary: `${channel} notification sent via workflow ${workflowId}.`,
-            execution_id: (obs.result as Record<string, unknown>)?.["executionId"],
+            execution_id: (obs.result as Record<string, unknown>)?.[
+              "executionId"
+            ],
           });
         }
 
@@ -68,7 +78,9 @@ export function createNotifyTool(kh: KeeperHub): DynamicStructuredTool {
           discord: "Discord channel",
           telegram: "Telegram channel",
           email: "email via SendGrid",
-          webhook: webhookUrl ? `webhook at ${webhookUrl}` : "configured webhook",
+          webhook: webhookUrl
+            ? `webhook at ${webhookUrl}`
+            : "configured webhook",
         };
 
         const prompt = [
@@ -77,7 +89,9 @@ export function createNotifyTool(kh: KeeperHub): DynamicStructuredTool {
           subject ? `Subject: "${subject}"` : null,
           webhookUrl ? `Webhook URL: ${webhookUrl}` : null,
           `Use the configured ${channel} integration in KeeperHub.`,
-        ].filter(Boolean).join(". ");
+        ]
+          .filter(Boolean)
+          .join(". ");
 
         const obs = await kh.pipeline().generate(prompt).safeWait();
 
@@ -108,7 +122,9 @@ export function createNotifyTool(kh: KeeperHub): DynamicStructuredTool {
 /**
  * List configured notification integrations (Discord, Telegram, SendGrid, Webhook).
  */
-export function createListIntegrationsTool(kh: KeeperHub): DynamicStructuredTool {
+export function createListIntegrationsTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_list_integrations",
     description:
@@ -123,11 +139,15 @@ export function createListIntegrationsTool(kh: KeeperHub): DynamicStructuredTool
     func: async ({ type }) => {
       try {
         const integrations = await kh.integrations.list();
-        const filtered = type === "all"
-          ? integrations
-          : integrations.filter(
-              (i) => String((i as Record<string, unknown>)["type"]).toLowerCase() === type
-            );
+        const filtered =
+          type === "all"
+            ? integrations
+            : integrations.filter(
+                (i) =>
+                  String(
+                    (i as Record<string, unknown>)["type"]
+                  ).toLowerCase() === type
+              );
 
         return JSON.stringify({
           ok: true,
@@ -136,9 +156,10 @@ export function createListIntegrationsTool(kh: KeeperHub): DynamicStructuredTool
             const r = i as Record<string, unknown>;
             return { id: r["id"], type: r["type"], name: r["name"] };
           }),
-          hint: filtered.length === 0
-            ? `No ${type === "all" ? "" : type + " "}integrations found. Add one at app.keeperhub.com → Integrations.`
-            : undefined,
+          hint:
+            filtered.length === 0
+              ? `No ${type === "all" ? "" : type + " "}integrations found. Add one at app.keeperhub.com → Integrations.`
+              : undefined,
         });
       } catch (err) {
         return JSON.stringify({ ok: false, error: String(err) });

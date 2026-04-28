@@ -1,27 +1,49 @@
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import type { KeeperHubConfig } from "keeperhub-sdk";
 import { KeeperHub } from "keeperhub-sdk";
+import {
+  createGetActionSchemaTool,
+  createSearchActionsTool,
+} from "./tools/action-schema.js";
+import { createAjnaTool } from "./tools/ajna.js";
+import {
+  createChainlinkCcipTool,
+  createChainlinkPriceFeedTool,
+} from "./tools/chainlink.js";
 import { createCheckAndExecuteTool } from "./tools/check-and-execute.js";
 import { createCheckExecutionTool } from "./tools/check-execution.js";
+import { createCodeExecuteTool } from "./tools/code-execute.js";
 import { createContractCallTool } from "./tools/contract-call.js";
+import {
+  createEnsLookupTool,
+  createEnsResolveTool,
+  createEnsTextRecordTool,
+} from "./tools/ens.js";
 import { createEstimateGasTool } from "./tools/estimate-gas.js";
 import { createExecuteWorkflowTool } from "./tools/execute-workflow.js";
 import { createFetchAbiTool } from "./tools/fetch-abi.js";
 import { createGenerateWorkflowTool } from "./tools/generate-workflow.js";
 import { createListChainsTool } from "./tools/list-chains.js";
 import { createListWorkflowsTool } from "./tools/list-workflows.js";
-import { createListProtocolsTool, createProtocolActionTool } from "./tools/protocol-action.js";
-import { createPayAndRunTool } from "./tools/pay-and-run.js";
-import { createRegisterAgentTool } from "./tools/register-agent.js";
-import { createWalletBalanceTool } from "./tools/wallet-balance.js";
-import { createTransferTool } from "./tools/transfer.js";
-import { createNotifyTool, createListIntegrationsTool } from "./tools/notify.js";
-import { createChainlinkCcipTool, createChainlinkPriceFeedTool } from "./tools/chainlink.js";
-import { createAjnaTool } from "./tools/ajna.js";
-import { createCodeExecuteTool } from "./tools/code-execute.js";
 import { createMathAggregateTool } from "./tools/math-aggregate.js";
-import { createGetActionSchemaTool, createSearchActionsTool } from "./tools/action-schema.js";
-import { createWorkflowVersionTool, createWorkflowMigrateTool, createWorkflowGoLiveTool } from "./tools/workflow-migrate.js";
+import {
+  createListIntegrationsTool,
+  createNotifyTool,
+} from "./tools/notify.js";
+import { createPayAndRunTool } from "./tools/pay-and-run.js";
+import {
+  createListProtocolsTool,
+  createProtocolActionTool,
+} from "./tools/protocol-action.js";
+import { createProvisionWalletTool } from "./tools/provision-wallet.js";
+import { createRegisterAgentTool } from "./tools/register-agent.js";
+import { createTransferTool } from "./tools/transfer.js";
+import { createWalletBalanceTool } from "./tools/wallet-balance.js";
+import {
+  createWorkflowGoLiveTool,
+  createWorkflowMigrateTool,
+  createWorkflowVersionTool,
+} from "./tools/workflow-migrate.js";
 
 export type ToolKey =
   | "list_chains"
@@ -51,7 +73,10 @@ export type ToolKey =
   | "search_actions"
   | "workflow_version"
   | "workflow_migrate"
-  | "workflow_publish";
+  | "workflow_publish"
+  | "ens_resolve"
+  | "ens_text_record"
+  | "ens_lookup";
 
 export interface KeeperHubToolkitOptions extends KeeperHubConfig {
   /**
@@ -104,6 +129,10 @@ const ALL_TOOLS: ToolKey[] = [
   "workflow_version",
   "workflow_migrate",
   "workflow_publish",
+  // ENS integration
+  "ens_resolve",
+  "ens_text_record",
+  "ens_lookup",
 ];
 
 /**
@@ -146,45 +175,49 @@ export class KeeperHubToolkit {
   getTools(): StructuredToolInterface[] {
     const all: Array<[ToolKey, () => StructuredToolInterface]> = [
       // Chain & contract
-      ["list_chains",       () => createListChainsTool(this.kh)],
-      ["fetch_abi",         () => createFetchAbiTool(this.kh)],
+      ["list_chains", () => createListChainsTool(this.kh)],
+      ["fetch_abi", () => createFetchAbiTool(this.kh)],
       // Web3
-      ["transfer",          () => createTransferTool(this.kh)],
-      ["contract_call",     () => createContractCallTool(this.kh)],
+      ["transfer", () => createTransferTool(this.kh)],
+      ["contract_call", () => createContractCallTool(this.kh)],
       ["check_and_execute", () => createCheckAndExecuteTool(this.kh)],
-      ["estimate_gas",      () => createEstimateGasTool(this.kh)],
+      ["estimate_gas", () => createEstimateGasTool(this.kh)],
       // Workflows
-      ["list_workflows",    () => createListWorkflowsTool(this.kh)],
-      ["execute",           () => createExecuteWorkflowTool(this.kh)],
-      ["generate",          () => createGenerateWorkflowTool(this.kh)],
-      ["check",             () => createCheckExecutionTool(this.kh)],
+      ["list_workflows", () => createListWorkflowsTool(this.kh)],
+      ["execute", () => createExecuteWorkflowTool(this.kh)],
+      ["generate", () => createGenerateWorkflowTool(this.kh)],
+      ["check", () => createCheckExecutionTool(this.kh)],
       // DeFi protocols
-      ["protocol_action",   () => createProtocolActionTool(this.kh)],
-      ["list_protocols",    () => createListProtocolsTool(this.kh)],
+      ["protocol_action", () => createProtocolActionTool(this.kh)],
+      ["list_protocols", () => createListProtocolsTool(this.kh)],
       // Payments
-      ["pay_and_run",       () => createPayAndRunTool(this.kh)],
+      ["pay_and_run", () => createPayAndRunTool(this.kh)],
       // Agent identity & wallet
-      ["register_agent",    () => createRegisterAgentTool(this.kh)],
-      ["wallet_balance",    () => createWalletBalanceTool(this.kh)],
-      ["provision_wallet",  () => createProvisionWalletTool(this.kh)],
+      ["register_agent", () => createRegisterAgentTool(this.kh)],
+      ["wallet_balance", () => createWalletBalanceTool(this.kh)],
+      ["provision_wallet", () => createProvisionWalletTool(this.kh)],
       // Notifications
-      ["notify",            () => createNotifyTool(this.kh)],
+      ["notify", () => createNotifyTool(this.kh)],
       ["list_integrations", () => createListIntegrationsTool(this.kh)],
       // Chainlink
-      ["chainlink_ccip",   () => createChainlinkCcipTool(this.kh)],
-      ["chainlink_price",  () => createChainlinkPriceFeedTool(this.kh)],
+      ["chainlink_ccip", () => createChainlinkCcipTool(this.kh)],
+      ["chainlink_price", () => createChainlinkPriceFeedTool(this.kh)],
       // Ajna
-      ["ajna",             () => createAjnaTool(this.kh)],
+      ["ajna", () => createAjnaTool(this.kh)],
       // Utility plugins
-      ["run_code",         () => createCodeExecuteTool(this.kh)],
-      ["math_aggregate",   () => createMathAggregateTool(this.kh)],
+      ["run_code", () => createCodeExecuteTool(this.kh)],
+      ["math_aggregate", () => createMathAggregateTool(this.kh)],
       // Action schema discovery
       ["get_action_schema", () => createGetActionSchemaTool(this.kh)],
-      ["search_actions",    () => createSearchActionsTool(this.kh)],
+      ["search_actions", () => createSearchActionsTool(this.kh)],
       // Workflow versioning & migration
-      ["workflow_version",  () => createWorkflowVersionTool(this.kh)],
-      ["workflow_migrate",  () => createWorkflowMigrateTool(this.kh)],
-      ["workflow_publish",  () => createWorkflowGoLiveTool(this.kh)],
+      ["workflow_version", () => createWorkflowVersionTool(this.kh)],
+      ["workflow_migrate", () => createWorkflowMigrateTool(this.kh)],
+      ["workflow_publish", () => createWorkflowGoLiveTool(this.kh)],
+      // ENS
+      ["ens_resolve", () => createEnsResolveTool(this.kh)],
+      ["ens_text_record", () => createEnsTextRecordTool(this.kh)],
+      ["ens_lookup", () => createEnsLookupTool(this.kh)],
     ];
 
     return all
@@ -244,13 +277,16 @@ export class KeeperHubToolkit {
           // Sanitize names/descriptions before injecting into system prompt
           // to prevent prompt injection via malicious workflow metadata
           const sanitize = (s: string) =>
-            s.replace(/[`\[\]{}\\]/g, "").slice(0, 80);
+            s.replace(/[`[\]{}\\]/g, "").slice(0, 80);
           lines.push(
             "",
             `Available workflows (${workflows.length}):`,
             ...workflows
               .slice(0, 10)
-              .map((wf) => `- ${sanitize(wf.name)} [${wf.id}]${wf.description ? `: ${sanitize(wf.description)}` : ""}`)
+              .map(
+                (wf) =>
+                  `- ${sanitize(wf.name)} [${wf.id}]${wf.description ? `: ${sanitize(wf.description)}` : ""}`
+              )
           );
         }
       } catch {

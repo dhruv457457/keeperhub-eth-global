@@ -15,7 +15,10 @@ export function createEstimateGasTool(kh: KeeperHub): DynamicStructuredTool {
       "Use this to check affordability before calling keeperhub_contract_call with callType='write'.",
     schema: z.object({
       network: z.string().describe("Chain ID as string"),
-      contract: z.string().regex(/^0x[0-9a-fA-F]{40}$/).describe("Contract address"),
+      contract: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{40}$/)
+        .describe("Contract address"),
       function: z.string().describe("Function name to estimate gas for"),
       args: z.array(z.unknown()).optional().describe("Function arguments"),
     }),

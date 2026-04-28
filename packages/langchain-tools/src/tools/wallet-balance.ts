@@ -18,7 +18,9 @@ export function createWalletBalanceTool(kh: KeeperHub): DynamicStructuredTool {
       chainId: z
         .number()
         .optional()
-        .describe("Filter by chain ID. Omit for all chains. Base=8453, Tempo=4217"),
+        .describe(
+          "Filter by chain ID. Omit for all chains. Base=8453, Tempo=4217"
+        ),
     }),
     func: async ({ chainId }) => {
       try {
@@ -54,11 +56,29 @@ export function createWalletBalanceTool(kh: KeeperHub): DynamicStructuredTool {
           balances: balances.slice(0, 20),
           payment_readiness: {
             x402_base_usdc: usdcBase
-              ? { balance: usdcBase["balance"], symbol: "USDC", chain: "Base (8453)" }
-              : { balance: "0", symbol: "USDC", chain: "Base (8453)", hint: "Fund with USDC on Base for x402 payments" },
+              ? {
+                  balance: usdcBase["balance"],
+                  symbol: "USDC",
+                  chain: "Base (8453)",
+                }
+              : {
+                  balance: "0",
+                  symbol: "USDC",
+                  chain: "Base (8453)",
+                  hint: "Fund with USDC on Base for x402 payments",
+                },
             mpp_tempo_usdce: usdcTempo
-              ? { balance: usdcTempo["balance"], symbol: "USDC.e", chain: "Tempo (4217)" }
-              : { balance: "0", symbol: "USDC.e", chain: "Tempo (4217)", hint: "Fund with USDC.e on Tempo for MPP payments" },
+              ? {
+                  balance: usdcTempo["balance"],
+                  symbol: "USDC.e",
+                  chain: "Tempo (4217)",
+                }
+              : {
+                  balance: "0",
+                  symbol: "USDC.e",
+                  chain: "Tempo (4217)",
+                  hint: "Fund with USDC.e on Tempo for MPP payments",
+                },
           },
         });
       } catch (err) {

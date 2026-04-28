@@ -24,9 +24,7 @@ const GenerateWorkflowSchema = z.object({
       (obj) => !obj || JSON.stringify(obj).length < 8192,
       "Execution input too large (max 8KB)"
     )
-    .describe(
-      "Runtime inputs to pass to the workflow if execute is true"
-    ),
+    .describe("Runtime inputs to pass to the workflow if execute is true"),
   context: z
     .string()
     .max(500)
@@ -43,7 +41,9 @@ const GenerateWorkflowSchema = z.object({
  * @example
  * const tool = createGenerateWorkflowTool(kh);
  */
-export function createGenerateWorkflowTool(kh: KeeperHub): DynamicStructuredTool {
+export function createGenerateWorkflowTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "generate_keeperhub_workflow",
     description:

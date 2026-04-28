@@ -16,7 +16,9 @@ import { z } from "zod";
  * 5. optionally go-live on v2, archive v1
  */
 
-export function createWorkflowVersionTool(kh: KeeperHub): DynamicStructuredTool {
+export function createWorkflowVersionTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_workflow_version",
     description:
@@ -25,17 +27,15 @@ export function createWorkflowVersionTool(kh: KeeperHub): DynamicStructuredTool 
       "and returns the new workflow ID. " +
       "Use keeperhub_workflow_migrate to move funds from old to new version.",
     schema: z.object({
-      workflowId: z
-        .string()
-        .describe("Source workflow ID to version (wf_xxx)"),
+      workflowId: z.string().describe("Source workflow ID to version (wf_xxx)"),
       improvements: z
         .string()
         .max(500)
         .optional()
         .describe(
           "Optional: describe improvements for the new version e.g. " +
-          "'Switch from Aave V2 to Aave V3 for better yield' or " +
-          "'Add Morpho as fallback when Aave APY drops below 3%'"
+            "'Switch from Aave V2 to Aave V3 for better yield' or " +
+            "'Add Morpho as fallback when Aave APY drops below 3%'"
         ),
       goLive: z
         .boolean()
@@ -81,7 +81,7 @@ export function createWorkflowVersionTool(kh: KeeperHub): DynamicStructuredTool 
           next_steps: [
             `1. Test new workflow: keeperhub_execute_workflow('${newId}')`,
             `2. Migrate funds: keeperhub_workflow_migrate({ fromId: '${workflowId}', toId: '${newId}' })`,
-            `3. Archive old workflow when ready`,
+            "3. Archive old workflow when ready",
           ],
         });
       } catch (err) {
@@ -91,7 +91,9 @@ export function createWorkflowVersionTool(kh: KeeperHub): DynamicStructuredTool 
   });
 }
 
-export function createWorkflowMigrateTool(kh: KeeperHub): DynamicStructuredTool {
+export function createWorkflowMigrateTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_workflow_migrate",
     description:
@@ -111,7 +113,7 @@ export function createWorkflowMigrateTool(kh: KeeperHub): DynamicStructuredTool 
         .optional()
         .describe(
           "Optional inputs for the withdrawal run on the old workflow. " +
-          "e.g. { action: 'withdraw_all', recipient: '0xYourWallet' }"
+            "e.g. { action: 'withdraw_all', recipient: '0xYourWallet' }"
         ),
       activateNew: z
         .boolean()
@@ -143,9 +145,13 @@ export function createWorkflowMigrateTool(kh: KeeperHub): DynamicStructuredTool 
           drainResult = {
             ok: obs.ok,
             summary: obs.summary,
-            execution_id: (obs.result as Record<string, unknown>)?.["executionId"],
+            execution_id: (obs.result as Record<string, unknown>)?.[
+              "executionId"
+            ],
           };
-          steps.push(obs.ok ? `✅ Old workflow drained.` : `⚠️ Drain: ${obs.summary}`);
+          steps.push(
+            obs.ok ? "✅ Old workflow drained." : `⚠️ Drain: ${obs.summary}`
+          );
         } catch (e) {
           steps.push(`⚠️ Drain attempt: ${e} (continuing migration)`);
         }
@@ -161,9 +167,15 @@ export function createWorkflowMigrateTool(kh: KeeperHub): DynamicStructuredTool 
           activateResult = {
             ok: obs.ok,
             summary: obs.summary,
-            execution_id: (obs.result as Record<string, unknown>)?.["executionId"],
+            execution_id: (obs.result as Record<string, unknown>)?.[
+              "executionId"
+            ],
           };
-          steps.push(obs.ok ? `✅ New workflow activated.` : `❌ Activation: ${obs.summary}`);
+          steps.push(
+            obs.ok
+              ? "✅ New workflow activated."
+              : `❌ Activation: ${obs.summary}`
+          );
         }
 
         return JSON.stringify({

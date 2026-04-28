@@ -15,13 +15,23 @@ export function createRegisterAgentTool(kh: KeeperHub): DynamicStructuredTool {
       "Idempotent — safe to call on every startup, will not create duplicates. " +
       "Returns the on-chain registration with NFT token ID and registry address.",
     schema: z.object({
-      name: z.string().max(64).optional().describe("Agent name (e.g. 'My DeFi Agent')"),
-      description: z.string().max(256).optional().describe("What this agent does"),
+      name: z
+        .string()
+        .max(64)
+        .optional()
+        .describe("Agent name (e.g. 'My DeFi Agent')"),
+      description: z
+        .string()
+        .max(256)
+        .optional()
+        .describe("What this agent does"),
       capabilities: z
         .array(z.string())
         .max(20)
         .optional()
-        .describe("List of capability slugs e.g. ['aave-v3/supply', 'uniswap/swap-exact-input']"),
+        .describe(
+          "List of capability slugs e.g. ['aave-v3/supply', 'uniswap/swap-exact-input']"
+        ),
     }),
     func: async ({ name, description, capabilities }) => {
       try {

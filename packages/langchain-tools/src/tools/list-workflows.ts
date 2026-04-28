@@ -3,18 +3,12 @@ import type { KeeperHub } from "keeperhub-sdk";
 import { z } from "zod";
 
 const ListWorkflowsSchema = z.object({
-  projectId: z
-    .string()
-    .optional()
-    .describe("Filter by project ID (optional)"),
-  tagId: z
-    .string()
-    .optional()
-    .describe("Filter by tag ID (optional)"),
+  projectId: z.string().optional().describe("Filter by project ID (optional)"),
+  tagId: z.string().optional().describe("Filter by tag ID (optional)"),
 });
 
 /** Sanitize workflow metadata before injecting into LLM context */
-const sanitize = (s: string) => s.replace(/[`\[\]{}\\]/g, "").slice(0, 80);
+const sanitize = (s: string) => s.replace(/[`[\]{}\\]/g, "").slice(0, 80);
 
 export function createListWorkflowsTool(kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
@@ -41,7 +35,8 @@ export function createListWorkflowsTool(kh: KeeperHub): DynamicStructuredTool {
       } catch (err) {
         // LangChain tools must return a string — never throw
         return JSON.stringify({
-          error: err instanceof Error ? err.message : "Failed to list workflows",
+          error:
+            err instanceof Error ? err.message : "Failed to list workflows",
         });
       }
     },

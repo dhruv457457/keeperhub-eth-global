@@ -6,7 +6,9 @@ import { z } from "zod";
  * Provision a new KeeperHub agentic wallet (Turnkey-backed, no key on disk).
  * Used when an agent needs its own payment identity for x402/MPP calls.
  */
-export function createProvisionWalletTool(kh: KeeperHub): DynamicStructuredTool {
+export function createProvisionWalletTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_provision_wallet",
     description:
@@ -20,13 +22,19 @@ export function createProvisionWalletTool(kh: KeeperHub): DynamicStructuredTool 
         .string()
         .max(64)
         .optional()
-        .describe("Optional label for this wallet (e.g. agent name or session ID)"),
+        .describe(
+          "Optional label for this wallet (e.g. agent name or session ID)"
+        ),
     }),
     func: async ({ label }) => {
       try {
-        const result = await kh["_http"].request("POST", "/api/agentic-wallet/provision", {
-          body: { label },
-        });
+        const result = await kh["_http"].request(
+          "POST",
+          "/api/agentic-wallet/provision",
+          {
+            body: { label },
+          }
+        );
         const r = result as Record<string, unknown>;
         return JSON.stringify({
           ok: true,

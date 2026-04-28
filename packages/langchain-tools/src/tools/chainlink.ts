@@ -36,12 +36,15 @@ export function createChainlinkCcipTool(kh: KeeperHub): DynamicStructuredTool {
         .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
         .describe(
           "Action parameters. For ccip-send: { destinationChainSelector, receiver, tokenAmounts, data, feeToken }. " +
-          "For ccip-get-fee: same fields. For approve: { spender, amount }. For check: { account, owner }"
+            "For ccip-get-fee: same fields. For approve: { spender, amount }. For check: { account, owner }"
         ),
     }),
     func: async ({ action, params }) => {
       try {
-        const result = await kh.protocols.execute(`chainlink/${action}`, params);
+        const result = await kh.protocols.execute(
+          `chainlink/${action}`,
+          params
+        );
         const r = result as Record<string, unknown>;
         return JSON.stringify({
           ok: true,
@@ -54,7 +57,11 @@ export function createChainlinkCcipTool(kh: KeeperHub): DynamicStructuredTool {
             : undefined,
         });
       } catch (err) {
-        return JSON.stringify({ ok: false, action: `chainlink/${action}`, error: String(err) });
+        return JSON.stringify({
+          ok: false,
+          action: `chainlink/${action}`,
+          error: String(err),
+        });
       }
     },
   });
@@ -64,7 +71,9 @@ export function createChainlinkCcipTool(kh: KeeperHub): DynamicStructuredTool {
  * Chainlink Price Feeds — get latest price for any asset pair.
  * Returns the current price from on-chain Chainlink aggregators.
  */
-export function createChainlinkPriceFeedTool(kh: KeeperHub): DynamicStructuredTool {
+export function createChainlinkPriceFeedTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_chainlink_price",
     description:
@@ -76,7 +85,7 @@ export function createChainlinkPriceFeedTool(kh: KeeperHub): DynamicStructuredTo
         .string()
         .describe(
           "Price feed slug e.g. 'eth-usd', 'btc-usd', 'link-usd', 'matic-usd'. " +
-          "Format: {asset}-{quote} in lowercase."
+            "Format: {asset}-{quote} in lowercase."
         ),
     }),
     func: async ({ feed }) => {

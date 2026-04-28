@@ -43,7 +43,9 @@ const ExecuteWorkflowSchema = z.object({
  * const tool = createExecuteWorkflowTool(kh);
  * const agent = await createReactAgent({ llm, tools: [tool] });
  */
-export function createExecuteWorkflowTool(kh: KeeperHub): DynamicStructuredTool {
+export function createExecuteWorkflowTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "execute_keeperhub_workflow",
     description:

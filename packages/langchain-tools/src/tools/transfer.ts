@@ -14,14 +14,26 @@ export function createTransferTool(kh: KeeperHub): DynamicStructuredTool {
       "Uses KeeperHub's managed wallet with retry logic and gas optimization. " +
       "Returns an execution_id — follow up with check_keeperhub_execution to get the tx hash.",
     schema: z.object({
-      network: z.string().describe("Chain ID as string (e.g. '8453' for Base, '1' for Ethereum)"),
-      to: z.string().regex(/^0x[0-9a-fA-F]{40}$/, "Must be a valid 0x address").describe("Recipient wallet address"),
-      amount: z.string().regex(/^\d+(\.\d+)?$/, "Must be a decimal number string").describe("Amount as decimal string (e.g. '0.01' for 0.01 ETH)"),
+      network: z
+        .string()
+        .describe(
+          "Chain ID as string (e.g. '8453' for Base, '1' for Ethereum)"
+        ),
+      to: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{40}$/, "Must be a valid 0x address")
+        .describe("Recipient wallet address"),
+      amount: z
+        .string()
+        .regex(/^\d+(\.\d+)?$/, "Must be a decimal number string")
+        .describe("Amount as decimal string (e.g. '0.01' for 0.01 ETH)"),
       token: z
         .string()
         .regex(/^0x[0-9a-fA-F]{40}$/)
         .optional()
-        .describe("ERC-20 token contract address. Omit to send native ETH/MATIC."),
+        .describe(
+          "ERC-20 token contract address. Omit to send native ETH/MATIC."
+        ),
     }),
     func: async ({ network, to, amount, token }) => {
       try {

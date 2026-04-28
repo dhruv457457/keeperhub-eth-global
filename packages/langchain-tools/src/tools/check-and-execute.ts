@@ -8,7 +8,9 @@ import { z } from "zod";
  *
  * Example: read Aave health factor → if below 1.2, trigger repayWithATokens.
  */
-export function createCheckAndExecuteTool(kh: KeeperHub): DynamicStructuredTool {
+export function createCheckAndExecuteTool(
+  kh: KeeperHub
+): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_check_and_execute",
     description:
@@ -19,21 +21,45 @@ export function createCheckAndExecuteTool(kh: KeeperHub): DynamicStructuredTool 
     schema: z.object({
       network: z.string().describe("Chain ID as string"),
       // Check params
-      checkContract: z.string().regex(/^0x[0-9a-fA-F]{40}$/).describe("Contract address to read the condition from"),
-      checkFunction: z.string().describe("View function to call for the condition check"),
-      checkArgs: z.array(z.unknown()).optional().describe("Arguments for the check function"),
-      checkAbi: z.string().optional().describe("ABI for the check contract (auto-fetched if omitted)"),
+      checkContract: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{40}$/)
+        .describe("Contract address to read the condition from"),
+      checkFunction: z
+        .string()
+        .describe("View function to call for the condition check"),
+      checkArgs: z
+        .array(z.unknown())
+        .optional()
+        .describe("Arguments for the check function"),
+      checkAbi: z
+        .string()
+        .optional()
+        .describe("ABI for the check contract (auto-fetched if omitted)"),
       // Condition
       conditionOperator: z
         .enum(["gt", "lt", "eq", "neq", "gte", "lte"])
         .describe("Comparison operator"),
-      conditionValue: z.string().describe("Value to compare against (as string)"),
+      conditionValue: z
+        .string()
+        .describe("Value to compare against (as string)"),
       // Action params
-      actionContract: z.string().regex(/^0x[0-9a-fA-F]{40}$/).describe("Contract to call if condition is true"),
-      actionFunction: z.string().describe("Function to execute if condition is true"),
-      actionArgs: z.array(z.unknown()).optional().describe("Arguments for the action function"),
+      actionContract: z
+        .string()
+        .regex(/^0x[0-9a-fA-F]{40}$/)
+        .describe("Contract to call if condition is true"),
+      actionFunction: z
+        .string()
+        .describe("Function to execute if condition is true"),
+      actionArgs: z
+        .array(z.unknown())
+        .optional()
+        .describe("Arguments for the action function"),
       actionAbi: z.string().optional().describe("ABI for the action contract"),
-      actionGasLimitMultiplier: z.string().optional().describe("Gas headroom e.g. '1.2'"),
+      actionGasLimitMultiplier: z
+        .string()
+        .optional()
+        .describe("Gas headroom e.g. '1.2'"),
     }),
     func: async ({
       network,

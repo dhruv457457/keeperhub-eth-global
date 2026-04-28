@@ -18,7 +18,11 @@ export function createListChainsTool(kh: KeeperHub): DynamicStructuredTool {
       try {
         const chains = await kh.chains.list();
         const summary = chains
-          .filter((c) => !("isEnabled" in c) || (c as Record<string, unknown>)["isEnabled"] !== false)
+          .filter(
+            (c) =>
+              !("isEnabled" in c) ||
+              (c as Record<string, unknown>)["isEnabled"] !== false
+          )
           .map((c) => ({
             chainId: (c as Record<string, unknown>)["chainId"],
             name: (c as Record<string, unknown>)["name"],

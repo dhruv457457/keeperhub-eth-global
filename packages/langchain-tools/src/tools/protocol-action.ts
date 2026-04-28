@@ -27,10 +27,10 @@ export function createProtocolActionTool(kh: KeeperHub): DynamicStructuredTool {
         .min(3)
         .describe(
           "Protocol action in 'protocol/action' format. Examples: " +
-          "'aave-v3/supply', 'aave-v3/borrow', 'aave-v3/withdraw', " +
-          "'uniswap/swap-exact-input', 'lido/wrap', 'compound-v3/supply', " +
-          "'curve/exchange', 'morpho/supply', 'yearn-v3/deposit', " +
-          "'cowswap/create-order', 'rocket-pool/stake', 'pendle/swap'"
+            "'aave-v3/supply', 'aave-v3/borrow', 'aave-v3/withdraw', " +
+            "'uniswap/swap-exact-input', 'lido/wrap', 'compound-v3/supply', " +
+            "'curve/exchange', 'morpho/supply', 'yearn-v3/deposit', " +
+            "'cowswap/create-order', 'rocket-pool/stake', 'pendle/swap'"
         ),
       params: z
         .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
@@ -68,8 +68,14 @@ export function createListProtocolsTool(kh: KeeperHub): DynamicStructuredTool {
       "Returns protocol slugs, names, and available actions with parameter schemas. " +
       "Use this to discover valid actionType values for keeperhub_protocol_action.",
     schema: z.object({
-      query: z.string().optional().describe("Optional search query e.g. 'supply' or 'aave'"),
-      protocol: z.string().optional().describe("Filter by protocol slug e.g. 'aave-v3'"),
+      query: z
+        .string()
+        .optional()
+        .describe("Optional search query e.g. 'supply' or 'aave'"),
+      protocol: z
+        .string()
+        .optional()
+        .describe("Filter by protocol slug e.g. 'aave-v3'"),
     }),
     func: async ({ query, protocol }) => {
       try {
