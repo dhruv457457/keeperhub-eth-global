@@ -6,12 +6,10 @@ import type {
   State,
 } from "@elizaos/core";
 import { elizaLogger } from "@elizaos/core";
-import { KeeperHubPaymentRequiredError, type KeeperHub } from "keeperhub-sdk";
+import { type KeeperHub, KeeperHubPaymentRequiredError } from "keeperhub-sdk";
 
 function extractWorkflowId(text: string): string | null {
-  const match = text.match(
-    /\b(?:wf_[a-zA-Z0-9_-]{1,64}|[a-z0-9]{10,30})\b/i
-  );
+  const match = text.match(/\b(?:wf_[a-zA-Z0-9_-]{1,64}|[a-z0-9]{10,30})\b/i);
   return match ? match[0] : null;
 }
 
@@ -60,7 +58,8 @@ export function createPayAndRunAction(kh: KeeperHub): Action {
     ): Promise<boolean> => {
       const text = message.content?.text ?? "";
       const hasPay = /pay|paid|x402|mpp|usdc|budget/i.test(text);
-      const hasTarget = extractWorkflowId(text) !== null || extractListedSlug(text) !== null;
+      const hasTarget =
+        extractWorkflowId(text) !== null || extractListedSlug(text) !== null;
       return hasPay && hasTarget;
     },
 

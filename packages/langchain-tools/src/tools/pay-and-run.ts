@@ -1,5 +1,5 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
-import { KeeperHubPaymentRequiredError, type KeeperHub } from "keeperhub-sdk";
+import { type KeeperHub, KeeperHubPaymentRequiredError } from "keeperhub-sdk";
 import { z } from "zod";
 
 /**
@@ -21,7 +21,9 @@ export function createPayAndRunTool(kh: KeeperHub): DynamicStructuredTool {
           .string()
           .regex(/^(wf_[a-zA-Z0-9_-]{1,64}|[0-9a-z]{10,30})$/)
           .optional()
-          .describe("Owned KeeperHub workflow ID from keeperhub_list_workflows"),
+          .describe(
+            "Owned KeeperHub workflow ID from keeperhub_list_workflows"
+          ),
         listedSlug: z
           .string()
           .regex(/^[a-z0-9][a-z0-9-]{1,120}$/)
@@ -48,7 +50,13 @@ export function createPayAndRunTool(kh: KeeperHub): DynamicStructuredTool {
       .refine((value) => value.workflowId || value.listedSlug, {
         message: "Provide workflowId or listedSlug",
       }),
-    func: async ({ workflowId, listedSlug, input, maxBudgetUsd, preferMpp }) => {
+    func: async ({
+      workflowId,
+      listedSlug,
+      input,
+      maxBudgetUsd,
+      preferMpp,
+    }) => {
       try {
         if (listedSlug) {
           const result = await kh.payments.execute(listedSlug, input ?? {});
@@ -107,8 +115,7 @@ export function createPayAndRunTool(kh: KeeperHub): DynamicStructuredTool {
               x_payment_requirements:
                 err.responseHeaders?.["x-payment-requirements"],
             },
-            hint:
-              "Payment challenge received. Use an x402/MPP payment resolver to sign and retry.",
+            hint: "Payment challenge received. Use an x402/MPP payment resolver to sign and retry.",
           });
         }
         return JSON.stringify({ ok: false, error: String(err) });
