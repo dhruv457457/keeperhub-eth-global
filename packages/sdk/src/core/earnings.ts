@@ -32,7 +32,10 @@ export class EarningsModule {
    * Get a paginated earnings summary for the authenticated org.
    * Shows total USDC earned, pending payouts, and per-workflow breakdown.
    */
-  async summary(options?: { page?: number; pageSize?: number }): Promise<EarningsSummary> {
+  async summary(options?: {
+    page?: number;
+    pageSize?: number;
+  }): Promise<EarningsSummary> {
     return this.client.request<EarningsSummary>("GET", "/api/earnings", {
       query: {
         page: options?.page,

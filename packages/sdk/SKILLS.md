@@ -772,3 +772,201 @@ new KeeperHub({
   timeout: 60_000,
 });
 ```
+
+---
+
+## Workflow Versioning & Migration Skills
+
+### `kh.workflows.duplicate(workflowId)` — create v2
+```typescript
+const newWorkflow = await kh.workflows.duplicate("wf_v1_abc");
+// → Workflow with new id — full copy of nodes, edges, trigger
+newWorkflow.id  // "wf_v2_xyz" — the new version
+```
+
+### `kh.workflows.goLive(workflowId)` — publish to marketplace
+```typescript
+const liveWf = await kh.workflows.goLive("wf_xyz");
+// Publishes to KeeperHub marketplace — other agents can discover + call via x402/MPP
+```
+
+### `kh.workflows.update(workflowId, input)` — edit existing workflow
+```typescript
+await kh.workflows.update("wf_xyz", {
+  name: "Rebalance ETH-USDC v2",
+  description: "Updated to use Aave V3 instead of V2",
+  nodes: [...],  // updated node graph
+  edges: [...],
+});
+```
+
+### `kh.workflows.delete(workflowId)` — remove a workflow
+```typescript
+await kh.workflows.delete("wf_old");
+```
+
+### `kh.workflows.exportCode(workflowId)` — get executable code
+```typescript
+const { code } = await kh.workflows.exportCode("wf_xyz");
+// Returns TypeScript/JS code for the workflow steps
+```
+
+**Migration pattern (v1 → v2):**
+```typescript
+// 1. Duplicate
+const v2 = await kh.workflows.duplicate("wf_v1");
+
+// 2. Run v1 with withdraw input to drain funds
+const drainObs = await kh.tryRun("wf_v1", { input: { _action: "withdraw" }, wait: true });
+
+// 3. Activate v2
+const activateObs = await kh.tryRun(v2.id, { wait: true });
+
+// 4. Go live on marketplace
+await kh.workflows.goLive(v2.id);
+```
+
+---
+
+## MCP & Action Schema Discovery Skills
+
+### `kh.mcp.getSchemas(category?)` — discover action schemas
+```typescript
+// All schemas
+const all = await kh.mcp.getSchemas();
+
+// Filter by category
+const aaveSchemas = await kh.mcp.getSchemas("Aave V3");
+const codeSchemas = await kh.mcp.getSchemas("Code");
+const discordSchemas = await kh.mcp.getSchemas("Discord");
+```
+
+**Schema shape:**
+```typescript
+{
+  actionType: "aave-v3/supply",   // use in workflow builder + protocols.execute
+  label: "Aave V3 Supply",
+  description: "Supply tokens to Aave V3...",
+  category: "Aave V3",
+  integration: "aave-v3",
+  requiresCredentials: false,
+  requiredFields: { asset: "string - ERC-20 address", amount: "string - wei amount" },
+  optionalFields: { referralCode: "number - default 0" },
+  outputFields: { success: "boolean", txHash: "string" },
+}
+```
+
+**Total actions:** 396 across 20+ protocols + Discord, Telegram, SendGrid, Webhook, Code, Math, Web3
+
+### `kh.mcp.getOpenApiSpec()` — full API spec
+```typescript
+const spec = await kh.mcp.getOpenApiSpec();
+// → Full OpenAPI JSON — use to generate typed clients
+```
+
+---
+
+## Earnings Skills (Creator Revenue)
+
+### `kh.earnings.summary()` — creator revenue overview
+```typescript
+const earnings = await kh.earnings.summary();
+// Revenue from your listed/paid workflows called via x402 or MPP
+earnings.totalRevenue    // total USDC earned
+earnings.byWorkflow      // breakdown per workflow
+earnings.pendingPayout   // not yet settled
+```
+
+---
+
+## Chainlink CCIP Quick Reference
+
+```typescript
+// Step 1: Get fee quote
+const fee = await kh.protocols.execute("chainlink/ccip-get-fee", {
+  destinationChainSelector: "15971525489660198786",  // Base
+  receiver: "0xRecipient",
+  tokenAmounts: [{ token: "0xUSDC...", amount: "1000000" }],
+  feeToken: "0x0000000000000000000000000000000000000000", // native
+});
+
+// Step 2: Approve bridge token
+await kh.protocols.execute("chainlink/ccip-approve-bridge-token", {
+  spender: "0xCCIPRouter...",
+  amount: "1000000",
+});
+
+// Step 3: Approve fee token (if paying in LINK)
+await kh.protocols.execute("chainlink/ccip-approve-fee-token", {
+  spender: "0xCCIPRouter...",
+  amount: fee.result.feeAmount,
+});
+
+// Step 4: Send
+const result = await kh.protocols.execute("chainlink/ccip-send", {
+  destinationChainSelector: "15971525489660198786",
+  receiver: "0xRecipient",
+  tokenAmounts: [{ token: "0xUSDC...", amount: "1000000" }],
+  data: "0x",
+  feeToken: "0x0000000000000000000000000000000000000000",
+});
+```
+
+**CCIP Chain Selectors:**
+| Chain | Selector |
+|-------|---------|
+| Ethereum Mainnet | `5009297550715157269` |
+| Base | `15971525489660198786` |
+| Arbitrum One | `4949039107694359620` |
+| Optimism | `3734403246176062136` |
+| Polygon | `4051577828743386545` |
+| Avalanche C-Chain | `6433500567565415381` |
+| BNB Smart Chain | `11344663589394136015` |
+
+---
+
+## Ajna Protocol Quick Reference
+
+```typescript
+// Check borrower position
+const info = await kh.protocols.execute("ajna/get-borrower-info", {
+  pool: "0xAjnaPool...",
+  borrower: "0xWallet...",
+});
+// info.result: { debt, collateral, thresholdPrice, neutralPrice }
+
+// Get pool health
+const lup = await kh.protocols.execute("ajna/get-pool-lup", { pool: "0x..." });
+const htp = await kh.protocols.execute("ajna/get-pool-htp", { pool: "0x..." });
+
+// Price/index conversion
+const idx = await kh.protocols.execute("ajna/price-to-index", { price: "1500" });
+```
+
+---
+
+## Complete Module Reference
+
+| Module | Access | Key methods |
+|--------|--------|-------------|
+| Workflows | `kh.workflows` | list, get, create, update, delete, duplicate, goLive, execute, run, generateSpec, exportCode |
+| Executions | `kh.executions` | getStatus, getLogs, cancel, stream |
+| Web3 | `kh.web3` | transfer, read, write, checkAndExecute, estimateGas |
+| Protocols | `kh.protocols` | execute, list, get, search |
+| Chains | `kh.chains` | list, getAbi |
+| Wallet | `kh.wallet` | getWallet, getTokenBalances, setRpc |
+| Payments | `kh.payments` | balance, preflight, execute, catalog |
+| Agent | `kh.agent` | ensureRegistered, register, getRegistry, getRegistrations |
+| Analytics | `kh.analytics` | summary, timeSeries, runs |
+| Integrations | `kh.integrations` | list, get, create, test, testById |
+| Events | `kh.events` | subscribe, onExecution, onStep |
+| Debug | `kh.debug` | explainFailure, replay |
+| Templates | `kh.templates` | list, use |
+| Projects | `kh.projects` | list, get, create |
+| Tags | `kh.tags` | list, create |
+| AddressBook | `kh.addressBook` | list, create, get |
+| ApiKeys | `kh.apiKeys` | list, create, revoke |
+| Mcp | `kh.mcp` | getSchemas, getOpenApiSpec |
+| Earnings | `kh.earnings` | summary |
+| Pipeline | `kh.pipeline()` | workflow, generate, listedWorkflow, pay, retry, ephemeral, safeWait |
+| Builder | `kh.workflowBuilder()` | step, trigger, if, then, save, run |

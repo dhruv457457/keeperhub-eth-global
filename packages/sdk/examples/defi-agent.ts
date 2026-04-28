@@ -45,11 +45,11 @@ async function main() {
       context: "User has USDC deposited in Aave v3 on Base mainnet",
     })
     .pay({
-      budget: "0.10",        // hard cap per execution
-      dailyBudget: "1.00",   // rolling 24h spend cap
+      budget: "0.10", // hard cap per execution
+      dailyBudget: "1.00", // rolling 24h spend cap
       requireApprovalAbove: "0.05", // pause for human sign-off above $0.05
     })
-    .retry({ attempts: 2, delayMs: 3_000 })
+    .retry({ attempts: 2, delayMs: 3000 })
     .safeWait({ timeout: 120_000 }); // never throws — always returns observation
 
   // 4. Agent-native result handling

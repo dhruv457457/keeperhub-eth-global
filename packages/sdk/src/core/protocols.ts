@@ -1,4 +1,5 @@
 import type {
+  McpSchemaCatalog,
   Protocol,
   ProtocolAction,
   SearchProtocolActionsInput,
@@ -22,12 +23,44 @@ export class ProtocolsModule {
   async search(
     input: SearchProtocolActionsInput = {}
   ): Promise<ProtocolAction[]> {
-    return this.client.request<ProtocolAction[]>("GET", "/api/mcp/schemas", {
-      query: {
-        category: "protocol",
-        q: input.query,
-        protocol: input.protocol,
-      },
+    const catalog = await this.client.request<McpSchemaCatalog>(
+      "GET",
+      "/api/mcp/schemas"
+    );
+    const actions = Object.entries(catalog.actions ?? {}).map(
+      ([actionType, schema]) => {
+        const details = schema as Record<string, unknown>;
+        const protocol = actionType.split("/")[0] ?? "";
+        return {
+          ...details,
+          id: String(details["id"] ?? actionType),
+          slug: actionType,
+          actionType,
+          label: String(details["label"] ?? details["name"] ?? actionType),
+          protocol: String(details["protocol"] ?? protocol),
+          type: String(details["type"] ?? "write"),
+          inputs: [],
+        } as ProtocolAction & { actionType: string; category?: string };
+      }
+    );
+
+    const query = input.query?.toLowerCase();
+    const protocol = input.protocol?.toLowerCase();
+
+    return actions.filter((action) => {
+      const actionType = action.actionType.toLowerCase();
+      const label = action.label.toLowerCase();
+      const description = String(action.description ?? "").toLowerCase();
+      const actionProtocol = action.protocol.toLowerCase();
+      return (
+        (!protocol ||
+          actionProtocol === protocol ||
+          actionType.startsWith(`${protocol}/`)) &&
+        (!query ||
+          actionType.includes(query) ||
+          label.includes(query) ||
+          description.includes(query))
+      );
     });
   }
 
@@ -49,7 +82,7 @@ export class ProtocolsModule {
     params: Record<string, unknown>
   ): Promise<{ executionId?: string; result?: unknown; status: string }> {
     return this.client.request("POST", "/api/execute/node", {
-      body: { actionType: `protocol/${actionType}`, params },
+      body: { actionType, config: params },
     });
   }
 }

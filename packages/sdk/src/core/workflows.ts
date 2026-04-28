@@ -219,7 +219,9 @@ export class WorkflowsModule {
     );
 
     if (!response.body) {
-      throw new KeeperHubValidationError("AI generation returned empty response");
+      throw new KeeperHubValidationError(
+        "AI generation returned empty response"
+      );
     }
 
     // Consume NDJSON stream — KeeperHub streams partial operations then a
@@ -258,7 +260,7 @@ export class WorkflowsModule {
       reader.releaseLock();
     }
 
-    if (!assembled.id && !assembled.name) {
+    if (!(assembled.id || assembled.name)) {
       throw new KeeperHubValidationError(
         "AI generation did not return a valid workflow. Try a more specific prompt."
       );

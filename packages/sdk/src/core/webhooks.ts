@@ -56,7 +56,7 @@ export async function verifyWebhookSignature(
   signature: string | string[] | undefined,
   secret: string
 ): Promise<boolean> {
-  if (!signature || !secret) return false;
+  if (!(signature && secret)) return false;
 
   const sigHeader = Array.isArray(signature) ? signature[0] : signature;
 

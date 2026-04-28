@@ -91,6 +91,7 @@ export type WorkflowTriggerDefinition =
     };
 
 export interface Workflow {
+  [key: string]: unknown;
   id: string;
   name: string;
   description?: string;
@@ -184,6 +185,7 @@ export interface ExecutionLog {
 }
 
 export interface ExecutionStatusResponse {
+  [key: string]: unknown;
   status: ExecutionStatus;
   progress?: {
     totalSteps: number;
@@ -341,9 +343,9 @@ export interface PaymentTransaction {
  * Allows production code to branch without string-matching human-readable messages.
  */
 export type PaymentFeasibilityCode =
-  | "insufficient_balance"     // wallet does not have enough USDC
+  | "insufficient_balance" // wallet does not have enough USDC
   | "payment_method_unsupported" // this workflow does not accept x402 payment
-  | "workflow_not_payable"     // workflow is not configured for paid execution
+  | "workflow_not_payable" // workflow is not configured for paid execution
   | "other";
 
 /** Cost estimate returned by a payment preflight check */
@@ -404,6 +406,8 @@ export interface PaymentPolicy {
    * Defaults to 60 000 ms (1 minute). Pass 0 to always re-preflight before retry.
    */
   preflightMaxAgeMs?: number;
+  /** Prefer MPP payment rails when the API offers multiple payment methods. */
+  preferMpp?: boolean;
 }
 
 export interface PaymentHistoryOptions {
@@ -494,6 +498,7 @@ export interface SafeRunOptions {
 }
 
 export interface WorkflowRunResult {
+  [key: string]: unknown;
   executionId: string;
   workflowId: string;
   status: ExecutionStatus;
@@ -516,6 +521,7 @@ export interface PipelineSimulationState {
 }
 
 export interface PipelineResult {
+  [key: string]: unknown;
   /** Undefined when status is "pending_approval" — no execution was created yet */
   executionId?: string;
   status: ExecutionStatus | "pending_approval" | "running";
@@ -599,6 +605,7 @@ export interface CheckAndExecuteParams {
 }
 
 export interface DirectExecution {
+  [key: string]: unknown;
   executionId: string;
   status: string;
   transactionHash?: string;
@@ -608,6 +615,7 @@ export interface DirectExecution {
 }
 
 export interface GasEstimate {
+  [key: string]: unknown;
   estimatedGas: string;
   estimatedEth: string;
   estimatedUsd?: string;
@@ -625,6 +633,7 @@ export interface ProtocolInput {
 }
 
 export interface ProtocolAction {
+  [key: string]: unknown;
   id: string;
   slug: string;
   label: string;
@@ -652,6 +661,7 @@ export interface SearchProtocolActionsInput {
 // ─── Integrations ─────────────────────────────────────────────────────────────
 
 export interface Integration {
+  [key: string]: unknown;
   id: string;
   type: string;
   name: string;
@@ -722,6 +732,7 @@ export interface NetworkUsage {
 // ─── Chains ───────────────────────────────────────────────────────────────────
 
 export interface Chain {
+  [key: string]: unknown;
   id: string;
   chainId: number;
   name: string;
@@ -800,6 +811,7 @@ export interface WalletToken {
 }
 
 export interface Wallet {
+  [key: string]: unknown;
   id: string;
   address: string;
   provider: "turnkey" | "para";
@@ -848,6 +860,7 @@ export interface AgentService {
 }
 
 export interface AgentRegistration {
+  [key: string]: unknown;
   agentId: string;
   agentRegistry: string;
   chainId: number;
@@ -905,7 +918,13 @@ export interface AgentCapability {
   /** Runnable code example */
   example: string;
   /** Grouping category */
-  category: "workflows" | "web3" | "protocols" | "payments" | "analytics" | "identity";
+  category:
+    | "workflows"
+    | "web3"
+    | "protocols"
+    | "payments"
+    | "analytics"
+    | "identity";
 }
 
 export interface KeeperHubConfig {

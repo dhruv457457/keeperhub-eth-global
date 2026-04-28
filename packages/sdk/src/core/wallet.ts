@@ -1,26 +1,44 @@
 import type { Wallet, WalletBalance, WalletToken } from "../types/index.js";
-import { validateBaseUrl } from "./client.js";
 import type { HttpClient } from "./client.js";
+import { validateBaseUrl } from "./client.js";
 
 export class WalletModule {
   constructor(private readonly client: HttpClient) {}
 
   /** Get the active wallet for the org */
   async get(): Promise<Wallet> {
-    return this.client.request<Wallet>("GET", "/api/user/wallet/active");
+    return this.client.request<Wallet>("GET", "/api/user/wallet");
+  }
+
+  /** Alias for agent integrations that use the API naming. */
+  async getWallet(): Promise<Wallet> {
+    return this.get();
   }
 
   /** Get all token balances across chains */
   async balances(): Promise<WalletBalance[]> {
-    return this.client.request<WalletBalance[]>(
-      "GET",
-      "/api/user/wallet/balances"
-    );
+    const tokens = await this.tokens();
+    return tokens.map((token) => ({
+      token: token.symbol || token.address,
+      balance: token.balance ?? "0",
+      chainId: token.chainId,
+    }));
   }
 
   /** List all tracked tokens */
   async tokens(): Promise<WalletToken[]> {
-    return this.client.request<WalletToken[]>("GET", "/api/user/wallet/tokens");
+    const response = await this.client.request<
+      WalletToken[] | { tokens?: WalletToken[] }
+    >("GET", "/api/user/wallet/tokens");
+    return Array.isArray(response) ? response : (response.tokens ?? []);
+  }
+
+  /** Alias for agent integrations that use the API naming. */
+  async getTokenBalances(chainId?: string): Promise<WalletToken[]> {
+    const tokens = await this.tokens();
+    return chainId
+      ? tokens.filter((token) => String(token.chainId) === chainId)
+      : tokens;
   }
 
   /** Withdraw funds from the managed wallet */

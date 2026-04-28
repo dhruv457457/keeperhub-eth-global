@@ -6,7 +6,10 @@ import type {
   WaitForCompletionOptions,
 } from "../types/index.js";
 import type { HttpClient } from "./client.js";
-import { KeeperHubExecutionTimeoutError } from "./errors.js";
+import {
+  KeeperHubExecutionTimeoutError,
+  KeeperHubNotFoundError,
+} from "./errors.js";
 
 const TERMINAL_STATUSES: ExecutionStatus[] = [
   "completed",
@@ -29,7 +32,12 @@ export class ExecutionHandle {
   async waitForCompletion(
     options: WaitForCompletionOptions = {}
   ): Promise<Execution> {
-    const { pollInterval = 2000, timeout = 120_000, onProgress, signal } = options;
+    const {
+      pollInterval = 2000,
+      timeout = 120_000,
+      onProgress,
+      signal,
+    } = options;
 
     if (signal?.aborted) {
       throw new Error("waitForCompletion was cancelled before it started");
@@ -57,7 +65,10 @@ export class ExecutionHandle {
     // Final check — the execution may have completed during the last sleep window
     // (avoids a false timeout when status flipped just as the deadline was reached)
     const finalStatus = await this.getStatus().catch(() => null);
-    if (finalStatus && TERMINAL_STATUSES.includes(finalStatus.status as ExecutionStatus)) {
+    if (
+      finalStatus &&
+      TERMINAL_STATUSES.includes(finalStatus.status as ExecutionStatus)
+    ) {
       return this.get();
     }
 
@@ -74,10 +85,7 @@ export class ExecutionHandle {
 
   /** Get execution status + progress */
   async getStatus(): Promise<ExecutionStatusResponse> {
-    return this.client.request<ExecutionStatusResponse>(
-      "GET",
-      `/api/workflows/executions/${this.id}/status`
-    );
+    return getExecutionStatus(this.client, this.id);
   }
 
   /** Get step-by-step logs */
@@ -101,9 +109,15 @@ export class ExecutionHandle {
 }
 
 const WS_MAX_RECONNECT_ATTEMPTS = 5;
-const WS_RECONNECT_BASE_MS = 1_000;
+const WS_RECONNECT_BASE_MS = 1000;
 const ALLOWED_STREAM_EVENT_TYPES = new Set([
-  "step", "complete", "error", "update", "log", "cancelled", "running",
+  "step",
+  "complete",
+  "error",
+  "update",
+  "log",
+  "cancelled",
+  "running",
 ]);
 
 export class ExecutionStream extends EventTarget {
@@ -155,8 +169,7 @@ export class ExecutionStream extends EventTarget {
     this.ws.onclose = () => {
       if (!this.closed && this.reconnectAttempts < WS_MAX_RECONNECT_ATTEMPTS) {
         // Exponential backoff before reconnecting
-        const delay =
-          WS_RECONNECT_BASE_MS * 2 ** this.reconnectAttempts;
+        const delay = WS_RECONNECT_BASE_MS * 2 ** this.reconnectAttempts;
         this.reconnectAttempts += 1;
         setTimeout(() => this.connect(), delay);
       } else {
@@ -209,10 +222,7 @@ export class ExecutionsModule {
 
   /** Get execution status */
   async getStatus(executionId: string): Promise<ExecutionStatusResponse> {
-    return this.client.request<ExecutionStatusResponse>(
-      "GET",
-      `/api/workflows/executions/${executionId}/status`
-    );
+    return getExecutionStatus(this.client, executionId);
   }
 
   /** Get execution logs */
@@ -243,13 +253,37 @@ export class ExecutionsModule {
   }
 }
 
+async function getExecutionStatus(
+  client: HttpClient,
+  executionId: string
+): Promise<ExecutionStatusResponse> {
+  try {
+    return await client.request<ExecutionStatusResponse>(
+      "GET",
+      `/api/workflows/executions/${executionId}/status`
+    );
+  } catch (err) {
+    if (!(err instanceof KeeperHubNotFoundError)) {
+      throw err;
+    }
+    return client.request<ExecutionStatusResponse>(
+      "GET",
+      `/api/execute/${executionId}/status`
+    );
+  }
+}
+
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => {
-      clearTimeout(timer);
-      reject(new Error("waitForCompletion was cancelled"));
-    }, { once: true });
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(new Error("waitForCompletion was cancelled"));
+      },
+      { once: true }
+    );
   });
 }
 

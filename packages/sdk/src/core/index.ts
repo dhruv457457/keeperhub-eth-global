@@ -17,25 +17,31 @@ export {
 export { EventSubscription, EventsModule } from "./events.js";
 export { ExecutionHandle, ExecutionStream } from "./executions.js";
 export { WorkflowPipeline } from "./pipeline.js";
+export type { WebhookPayload } from "./webhooks.js";
 export {
   handleWebhook,
   parseWebhookPayload,
   verifyWebhookSignature,
 } from "./webhooks.js";
-export type { WebhookPayload } from "./webhooks.js";
 
-import type { AgentCapability, AgentObservation, KeeperHubConfig, SafeRunOptions, WorkflowRunResult } from "../types/index.js";
-import { KeeperHubError } from "./errors.js";
+import type {
+  AgentCapability,
+  AgentObservation,
+  KeeperHubConfig,
+  SafeRunOptions,
+  WorkflowRunResult,
+} from "../types/index.js";
 import { AddressBookModule } from "./address-book.js";
 import { AgentModule } from "./agent.js";
 import { AnalyticsModule } from "./analytics.js";
 import { ApiKeysModule } from "./api-keys.js";
 import type { WorkflowBuilderInput } from "./builder.js";
-import { triggers, WorkflowBuilder } from "./builder.js";
+import { WorkflowBuilder } from "./builder.js";
 import { ChainsModule } from "./chains.js";
 import { HttpClient } from "./client.js";
 import { DebugModule } from "./debug.js";
 import { EarningsModule } from "./earnings.js";
+import { KeeperHubError } from "./errors.js";
 import { EventsModule } from "./events.js";
 import { ExecutionsModule } from "./executions.js";
 import { IntegrationsModule } from "./integrations.js";
@@ -50,8 +56,11 @@ import { WalletModule } from "./wallet.js";
 import { Web3Module } from "./web3.js";
 import { WorkflowsModule } from "./workflows.js";
 
-export type { KeeperHubConfig } from "../types/index.js";
-export type { AgentCapability, AgentObservation } from "../types/index.js";
+export type {
+  AgentCapability,
+  AgentObservation,
+  KeeperHubConfig,
+} from "../types/index.js";
 
 export class KeeperHub {
   /** @internal */
@@ -180,7 +189,10 @@ export class KeeperHub {
    * Use `kh.pipeline()` for retry, payment guardrails, and AI generation.
    * Use `kh.tryRun()` for agent loops that must not throw.
    */
-  run(workflowId: string, options?: SafeRunOptions): Promise<WorkflowRunResult> {
+  run(
+    workflowId: string,
+    options?: SafeRunOptions
+  ): Promise<WorkflowRunResult> {
     return this.workflows.run(workflowId, options);
   }
 
@@ -192,11 +204,15 @@ export class KeeperHub {
    * const obs = await kh.tryRun("wf_123", { verbose: true });
    * if (!obs.ok) console.log(obs.summary); // LLM-ready error context
    */
-  async tryRun(workflowId: string, options?: SafeRunOptions): Promise<AgentObservation<WorkflowRunResult>> {
+  async tryRun(
+    workflowId: string,
+    options?: SafeRunOptions
+  ): Promise<AgentObservation<WorkflowRunResult>> {
     try {
       const result = await this.workflows.run(workflowId, options);
       const status = result.status;
-      const attemptStr = result.attempts > 1 ? ` after ${result.attempts} attempts` : "";
+      const attemptStr =
+        result.attempts > 1 ? ` after ${result.attempts} attempts` : "";
       return {
         ok: true,
         action: "workflows.run",
@@ -207,8 +223,12 @@ export class KeeperHub {
       const isKhError = error instanceof KeeperHubError;
       const message = error instanceof Error ? error.message : String(error);
       const code = isKhError ? (error as KeeperHubError).code : "UNKNOWN";
-      const isRetryable = isKhError ? (error as KeeperHubError).isRetryable : false;
-      const suggestedAction = isKhError ? (error as KeeperHubError).suggestedAction : "Unexpected error.";
+      const isRetryable = isKhError
+        ? (error as KeeperHubError).isRetryable
+        : false;
+      const suggestedAction = isKhError
+        ? (error as KeeperHubError).suggestedAction
+        : "Unexpected error.";
       return {
         ok: false,
         action: "workflows.run",
@@ -233,114 +253,176 @@ export class KeeperHub {
     return [
       {
         name: "execute_workflow",
-        description: "Execute an existing workflow by ID and wait for completion.",
+        description:
+          "Execute an existing workflow by ID and wait for completion.",
         parameters: { workflowId: "string", input: "object (optional)" },
         example: "await kh.pipeline().workflow('wf_123').wait()",
         category: "workflows",
       },
       {
         name: "execute_workflow_safe",
-        description: "Execute a workflow and get a structured observation — never throws, safe for agent loops.",
+        description:
+          "Execute a workflow and get a structured observation — never throws, safe for agent loops.",
         parameters: { workflowId: "string" },
-        example: "const obs = await kh.pipeline().workflow('wf_123').safeWait()",
+        example:
+          "const obs = await kh.pipeline().workflow('wf_123').safeWait()",
         category: "workflows",
       },
       {
         name: "generate_and_run_workflow",
-        description: "Generate a new workflow from a natural-language prompt, save it, and execute it.",
-        parameters: { prompt: "string (max 1000 chars)", context: "string (optional)" },
-        example: "await kh.pipeline().generate('Compound my Aave USDC rewards weekly').wait()",
+        description:
+          "Generate a new workflow from a natural-language prompt, save it, and execute it.",
+        parameters: {
+          prompt: "string (max 1000 chars)",
+          context: "string (optional)",
+        },
+        example:
+          "await kh.pipeline().generate('Compound my Aave USDC rewards weekly').wait()",
         category: "workflows",
       },
       {
         name: "generate_and_run_ephemeral",
-        description: "Generate a workflow, run it once, then auto-delete it. Use when exploring options.",
+        description:
+          "Generate a workflow, run it once, then auto-delete it. Use when exploring options.",
         parameters: { prompt: "string" },
-        example: "await kh.pipeline().generate('Check ETH price').ephemeral().safeWait()",
+        example:
+          "await kh.pipeline().generate('Check ETH price').ephemeral().safeWait()",
         category: "workflows",
       },
       {
         name: "use_template",
-        description: "Deploy a workflow from a public template and execute it with custom inputs.",
+        description:
+          "Deploy a workflow from a public template and execute it with custom inputs.",
         parameters: { templateId: "string", inputs: "object (optional)" },
-        example: "await kh.templates.use('aave-compound').with({ inputs: { asset: 'USDC' } }).run()",
+        example:
+          "await kh.templates.use('aave-compound').with({ inputs: { asset: 'USDC' } }).run()",
         category: "workflows",
       },
       {
         name: "call_listed_workflow",
-        description: "Call a publicly listed paid workflow by slug. Handles x402 payment automatically.",
+        description:
+          "Call a publicly listed paid workflow by slug. Handles x402 payment automatically.",
         parameters: { slug: "string", input: "object (optional)" },
         example: "await kh.pipeline().listedWorkflow('eth-price-feed').wait()",
         category: "payments",
       },
       {
         name: "check_payment_balance",
-        description: "Get the current USDC balance of the KeeperHub execution wallet.",
+        description:
+          "Get the current USDC balance of the KeeperHub execution wallet.",
         parameters: {},
         example: "const { usdc, address } = await kh.payments.balance()",
         category: "payments",
       },
       {
         name: "preflight_cost_estimate",
-        description: "Estimate the USDC cost of executing a workflow before committing funds.",
+        description:
+          "Estimate the USDC cost of executing a workflow before committing funds.",
         parameters: { workflowId: "string" },
-        example: "const { estimatedCost, feasible } = await kh.payments.preflight('wf_123')",
+        example:
+          "const { estimatedCost, feasible } = await kh.payments.preflight('wf_123')",
         category: "payments",
       },
       {
         name: "transfer_tokens",
-        description: "Transfer native token or ERC-20 tokens to a recipient address.",
-        parameters: { network: "chain ID string", to: "recipient address", amount: "decimal string", token: "ERC-20 address (optional)" },
-        example: "await kh.web3.transfer({ network: '8453', to: '0x...', amount: '1.0' })",
+        description:
+          "Transfer native token or ERC-20 tokens to a recipient address.",
+        parameters: {
+          network: "chain ID string",
+          to: "recipient address",
+          amount: "decimal string",
+          token: "ERC-20 address (optional)",
+        },
+        example:
+          "await kh.web3.transfer({ network: '8453', to: '0x...', amount: '1.0' })",
         category: "web3",
       },
       {
         name: "read_contract",
-        description: "Read a value from a smart contract (view/pure function, no gas).",
-        parameters: { network: "chain ID", contract: "address", function: "function name", args: "array (optional)" },
-        example: "await kh.web3.call('read', { network: '1', contract: '0xUSDC', function: 'balanceOf', args: ['0xWallet'] })",
+        description:
+          "Read a value from a smart contract (view/pure function, no gas).",
+        parameters: {
+          network: "chain ID",
+          contract: "address",
+          function: "function name",
+          args: "array (optional)",
+        },
+        example:
+          "await kh.web3.call('read', { network: '1', contract: '0xUSDC', function: 'balanceOf', args: ['0xWallet'] })",
         category: "web3",
       },
       {
         name: "write_contract",
-        description: "Call a state-changing smart contract function (costs gas).",
-        parameters: { network: "chain ID", contract: "address", function: "function name", args: "array (optional)" },
-        example: "await kh.web3.call('write', { network: '8453', contract: '0x...', function: 'approve', args: ['0xSpender', '1000'] })",
+        description:
+          "Call a state-changing smart contract function (costs gas).",
+        parameters: {
+          network: "chain ID",
+          contract: "address",
+          function: "function name",
+          args: "array (optional)",
+        },
+        example:
+          "await kh.web3.call('write', { network: '8453', contract: '0x...', function: 'approve', args: ['0xSpender', '1000'] })",
         category: "web3",
       },
       {
         name: "swap_tokens",
-        description: "Swap one token for another via the configured DEX aggregator.",
-        parameters: { network: "chain ID", tokenIn: "address", tokenOut: "address", amount: "string", slippage: "number 0-100 (optional)" },
-        example: "await kh.web3.swap({ network: '8453', tokenIn: '0xETH', tokenOut: '0xUSDC', amount: '0.1' })",
+        description:
+          "Swap one token for another via the configured DEX aggregator.",
+        parameters: {
+          network: "chain ID",
+          tokenIn: "address",
+          tokenOut: "address",
+          amount: "string",
+          slippage: "number 0-100 (optional)",
+        },
+        example:
+          "await kh.web3.swap({ network: '8453', tokenIn: '0xETH', tokenOut: '0xUSDC', amount: '0.1' })",
         category: "web3",
       },
       {
         name: "execute_protocol_action",
-        description: "Execute a DeFi protocol action (Aave, Lido, Uniswap, etc.)",
-        parameters: { actionType: "string e.g. 'aave/supply'", params: "object matching the action's input schema" },
-        example: "await kh.protocols.execute('aave/supply', { asset: '0xUSDC', amount: '1000000' })",
+        description:
+          "Execute a DeFi protocol action (Aave, Lido, Uniswap, etc.)",
+        parameters: {
+          actionType: "string e.g. 'aave/supply'",
+          params: "object matching the action's input schema",
+        },
+        example:
+          "await kh.protocols.execute('aave/supply', { asset: '0xUSDC', amount: '1000000' })",
         category: "protocols",
       },
       {
         name: "explain_execution_failure",
-        description: "Get a structured explanation of why an execution failed, including the failing step.",
+        description:
+          "Get a structured explanation of why an execution failed, including the failing step.",
         parameters: { executionId: "string" },
         example: "const info = await kh.debug.explainFailure('exec_abc')",
         category: "workflows",
       },
       {
         name: "replay_execution",
-        description: "Replay a failed execution with the same or modified inputs.",
-        parameters: { executionId: "string", input: "object (optional override)" },
-        example: "const handle = await kh.debug.replay('exec_abc', { input: { amount: '50' } })",
+        description:
+          "Replay a failed execution with the same or modified inputs.",
+        parameters: {
+          executionId: "string",
+          input: "object (optional override)",
+        },
+        example:
+          "const handle = await kh.debug.replay('exec_abc', { input: { amount: '50' } })",
         category: "workflows",
       },
       {
         name: "register_agent_identity",
-        description: "Register this agent on-chain as an ERC-8004 identity (idempotent — safe to call on every startup).",
-        parameters: { name: "string (optional)", description: "string (optional)", capabilities: "string[] (optional)" },
-        example: "await kh.agent.ensureRegistered({ name: 'My DeFi Agent', capabilities: ['aave/supply'] })",
+        description:
+          "Register this agent on-chain as an ERC-8004 identity (idempotent — safe to call on every startup).",
+        parameters: {
+          name: "string (optional)",
+          description: "string (optional)",
+          capabilities: "string[] (optional)",
+        },
+        example:
+          "await kh.agent.ensureRegistered({ name: 'My DeFi Agent', capabilities: ['aave/supply'] })",
         category: "identity",
       },
     ];

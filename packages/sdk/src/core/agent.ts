@@ -62,7 +62,9 @@ export class AgentModule {
     capabilities?: string[];
     workflowId?: string;
   }): Promise<AgentRegistration> {
-    const existing = await this.getRegistrations().catch(() => [] as AgentRegistration[]);
+    const existing = await this.getRegistrations().catch(
+      () => [] as AgentRegistration[]
+    );
     if (existing.length > 0) {
       // Return the most recent registration rather than creating a duplicate
       return existing[existing.length - 1];

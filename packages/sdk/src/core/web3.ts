@@ -160,7 +160,7 @@ export class Web3Module {
   }): Promise<DirectExecution> {
     throw new Error(
       "kh.web3.swap() is not yet available — the KeeperHub swap endpoint is coming soon. " +
-      "Use kh.pipeline().generate('Swap X for Y on network') to execute swaps via AI-generated workflows."
+        "Use kh.pipeline().generate('Swap X for Y on network') to execute swaps via AI-generated workflows."
     );
   }
 

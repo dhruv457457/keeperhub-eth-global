@@ -32,7 +32,9 @@ export class KeeperHubAuthError extends KeeperHubError {
     this.name = "KeeperHubAuthError";
   }
 
-  override get isRetryable(): boolean { return false; }
+  override get isRetryable(): boolean {
+    return false;
+  }
   override get suggestedAction(): string {
     return "Stop immediately. The API key is missing or invalid — retrying will not help. Check the KEEPERHUB_API_KEY environment variable.";
   }
@@ -44,7 +46,9 @@ export class KeeperHubNotFoundError extends KeeperHubError {
     this.name = "KeeperHubNotFoundError";
   }
 
-  override get isRetryable(): boolean { return false; }
+  override get isRetryable(): boolean {
+    return false;
+  }
   override get suggestedAction(): string {
     return "The resource does not exist. Verify the ID or slug and try a different one.";
   }
@@ -56,7 +60,9 @@ export class KeeperHubRateLimitError extends KeeperHubError {
     this.name = "KeeperHubRateLimitError";
   }
 
-  override get isRetryable(): boolean { return true; }
+  override get isRetryable(): boolean {
+    return true;
+  }
   override get suggestedAction(): string {
     return this.retryAfter
       ? `Wait ${this.retryAfter} seconds before retrying.`
@@ -73,7 +79,9 @@ export class KeeperHubValidationError extends KeeperHubError {
     this.name = "KeeperHubValidationError";
   }
 
-  override get isRetryable(): boolean { return false; }
+  override get isRetryable(): boolean {
+    return false;
+  }
   override get suggestedAction(): string {
     return "The input is invalid — fix the parameters before retrying.";
   }
@@ -88,7 +96,9 @@ export class KeeperHubPaymentRequiredError extends KeeperHubError {
     this.name = "KeeperHubPaymentRequiredError";
   }
 
-  override get isRetryable(): boolean { return false; }
+  override get isRetryable(): boolean {
+    return false;
+  }
   override get suggestedAction(): string {
     return "Payment is required to call this workflow. Use payments.execute() with a resolvePayment callback, or ask the user to authorize payment.";
   }
@@ -100,7 +110,9 @@ export class KeeperHubTimeoutError extends KeeperHubError {
     this.name = "KeeperHubTimeoutError";
   }
 
-  override get isRetryable(): boolean { return true; }
+  override get isRetryable(): boolean {
+    return true;
+  }
   override get suggestedAction(): string {
     return "The request timed out. Retry once. If it keeps timing out, the service may be under load — wait 30 seconds and try again.";
   }
@@ -116,7 +128,8 @@ export class KeeperHubExecutionTimeoutError extends Error {
   }
 
   readonly isRetryable = true;
-  readonly suggestedAction = "The execution is still running — poll kh.executions.getStatus(executionId) to check progress, or re-run with a longer timeout.";
+  readonly suggestedAction =
+    "The execution is still running — poll kh.executions.getStatus(executionId) to check progress, or re-run with a longer timeout.";
 }
 
 /**
@@ -133,7 +146,9 @@ export class KeeperHubPaymentPolicyError extends KeeperHubError {
     this.name = "KeeperHubPaymentPolicyError";
   }
 
-  override get isRetryable(): boolean { return false; }
+  override get isRetryable(): boolean {
+    return false;
+  }
   override get suggestedAction(): string {
     if (this.approvalUrl) {
       return `Human approval is required. Direct the user to: ${this.approvalUrl}`;

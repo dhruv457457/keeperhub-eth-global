@@ -29,14 +29,10 @@ export function validateBaseUrl(url: string): string {
 
   // Allow localhost/127.0.0.1 for local dev without HTTPS
   const isLocalhost =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1";
+    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 
   if (protocol !== "https:" && !isLocalhost) {
-    throw new Error(
-      `[keeperhub-sdk] baseUrl must use HTTPS. Got: "${url}"`
-    );
+    throw new Error(`[keeperhub-sdk] baseUrl must use HTTPS. Got: "${url}"`);
   }
 
   // Block private IP ranges (SSRF protection)

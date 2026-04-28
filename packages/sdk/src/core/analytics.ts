@@ -94,12 +94,16 @@ export class AnalyticsModule {
 }
 
 const ANALYTICS_ALLOWED_EVENT_TYPES = new Set([
-  "execution.completed", "execution.failed", "execution.updated",
-  "execution.started", "execution.cancelled", "event",
+  "execution.completed",
+  "execution.failed",
+  "execution.updated",
+  "execution.started",
+  "execution.cancelled",
+  "event",
 ]);
 
 const ANALYTICS_WS_MAX_RECONNECT = 5;
-const ANALYTICS_WS_RECONNECT_BASE_MS = 1_000;
+const ANALYTICS_WS_RECONNECT_BASE_MS = 1000;
 
 export class AnalyticsStream extends EventTarget {
   private ws: WebSocket | null = null;
@@ -142,7 +146,8 @@ export class AnalyticsStream extends EventTarget {
 
     this.ws.onclose = () => {
       if (!this.closed && this.reconnectAttempts < ANALYTICS_WS_MAX_RECONNECT) {
-        const delay = ANALYTICS_WS_RECONNECT_BASE_MS * 2 ** this.reconnectAttempts;
+        const delay =
+          ANALYTICS_WS_RECONNECT_BASE_MS * 2 ** this.reconnectAttempts;
         this.reconnectAttempts += 1;
         setTimeout(() => this.connect(), delay);
       } else {
@@ -156,7 +161,13 @@ export class AnalyticsStream extends EventTarget {
   }
 
   on(
-    event: "execution.completed" | "execution.failed" | "event" | "close" | "error" | string,
+    event:
+      | "execution.completed"
+      | "execution.failed"
+      | "event"
+      | "close"
+      | "error"
+      | string,
     listener: (data: unknown) => void
   ) {
     this.addEventListener(event, (e) => {

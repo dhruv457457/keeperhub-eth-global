@@ -7,9 +7,9 @@
  * Run: KEEPERHUB_API_KEY=kh_xxx OPENAI_API_KEY=sk_xxx npx tsx examples/langchain-agent.ts
  */
 
-import { ChatOpenAI } from "@langchain/openai";
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { HumanMessage } from "@langchain/core/messages";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { ChatOpenAI } from "@langchain/openai";
 import { KeeperHubToolkit } from "../../langchain-tools/src/toolkit.js";
 
 async function main() {
@@ -21,7 +21,9 @@ async function main() {
   });
 
   const tools = toolkit.getTools();
-  const systemPrompt = await toolkit.buildSystemPrompt({ includeWorkflows: true });
+  const systemPrompt = await toolkit.buildSystemPrompt({
+    includeWorkflows: true,
+  });
 
   const llm = new ChatOpenAI({ model: "gpt-4o-mini", temperature: 0 });
   const agent = await createReactAgent({

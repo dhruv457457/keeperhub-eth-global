@@ -35,23 +35,37 @@ function normalizeChallenge(value: unknown): PaymentChallenge {
  * to settle on. If no resolver is provided we surface the protocol in the error
  * so the caller can handle it manually.
  */
-function detectPaymentProtocol(headers: Record<string, string>): "x402" | "mpp" | "unknown" {
+function detectPaymentProtocol(
+  headers: Record<string, string>
+): "x402" | "mpp" | "unknown" {
   // MPP challenge is indicated by WWW-Authenticate: MPP ... header
-  const wwwAuth = headers["www-authenticate"] ?? headers["WWW-Authenticate"] ?? "";
-  if (wwwAuth.toLowerCase().startsWith("mpp")) return "mpp";
+  const wwwAuth =
+    headers["www-authenticate"] ?? headers["WWW-Authenticate"] ?? "";
+  const wwwAuthLower = wwwAuth.toLowerCase();
+  if (
+    wwwAuthLower.startsWith("mpp") ||
+    (wwwAuthLower.startsWith("payment") &&
+      (wwwAuthLower.includes('method="tempo"') ||
+        wwwAuthLower.includes("method=tempo")))
+  )
+    return "mpp";
   // x402 challenge uses X-PAYMENT-REQUIREMENTS or PAYMENT-REQUIRED headers
   if (
     headers["x-payment-requirements"] ||
     headers["X-PAYMENT-REQUIREMENTS"] ||
     headers["payment-required"] ||
     headers["PAYMENT-REQUIRED"]
-  ) return "x402";
+  )
+    return "x402";
   return "unknown";
 }
 
 /** Generate a cryptographically strong idempotency key for payment calls */
 function generatePaymentIdempotencyKey(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return `pay-${crypto.randomUUID()}`;
   }
   // Fallback for older environments
@@ -139,7 +153,8 @@ export class PaymentsModule {
         // Use caller-supplied key or generate a fresh one.
         // The same key is forwarded on retry so the server can deduplicate
         // in case the first response was lost in transit.
-        const idempotencyKey = options.idempotencyKey ?? generatePaymentIdempotencyKey();
+        const idempotencyKey =
+          options.idempotencyKey ?? generatePaymentIdempotencyKey();
 
         try {
           return await this.call(slug, input, resolvedHeaders, idempotencyKey);
@@ -147,7 +162,12 @@ export class PaymentsModule {
           // One more attempt on transient failures — payment was already signed,
           // so this retry carries the same idempotency key and is safe.
           if (isTransientError(retryError)) {
-            return await this.call(slug, input, resolvedHeaders, idempotencyKey);
+            return await this.call(
+              slug,
+              input,
+              resolvedHeaders,
+              idempotencyKey
+            );
           }
           throw retryError;
         }
@@ -222,7 +242,9 @@ export class PaymentsModule {
    *   status: "confirmed",
    * });
    */
-  async history(options?: PaymentHistoryOptions): Promise<PaymentHistoryResponse> {
+  async history(
+    options?: PaymentHistoryOptions
+  ): Promise<PaymentHistoryResponse> {
     return this.client.request<PaymentHistoryResponse>(
       "GET",
       "/api/payments/transactions",

@@ -29,7 +29,12 @@ export function KeeperHubProvider({
     () => new KeeperHub(config),
     // Include all config fields so a changed timeout/retry creates a new client
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [config.apiKey, config.baseUrl, config.timeout, JSON.stringify(config.retry)]
+    [
+      config.apiKey,
+      config.baseUrl,
+      config.timeout,
+      JSON.stringify(config.retry),
+    ]
   );
   const qc = queryClient ?? defaultQueryClient;
 

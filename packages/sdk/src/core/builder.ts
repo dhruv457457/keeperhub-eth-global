@@ -1,13 +1,13 @@
 import type {
   ConditionConfig,
   CreateWorkflowInput,
+  Workflow,
   WorkflowEdge,
   WorkflowNode,
   WorkflowTriggerDefinition,
 } from "../types/index.js";
 import type { ConditionDefinition } from "./conditions.js";
 import type { ExecutionHandle } from "./executions.js";
-import type { Workflow } from "../types/index.js";
 
 class WorkflowBuilderError extends Error {
   constructor(message: string) {
@@ -41,7 +41,10 @@ export type WorkflowBuilderInput = Pick<
  */
 export interface WorkflowPersistence {
   create(input: CreateWorkflowInput): Promise<Workflow>;
-  execute(workflowId: string, input?: Record<string, unknown>): Promise<ExecutionHandle>;
+  execute(
+    workflowId: string,
+    input?: Record<string, unknown>
+  ): Promise<ExecutionHandle>;
 }
 
 /**
@@ -173,9 +176,7 @@ export class WorkflowBuilder {
 
   step(input: ActionStepInput): this {
     if (!this.hasTrigger) {
-      throw new WorkflowBuilderError(
-        "Call .trigger() before adding steps."
-      );
+      throw new WorkflowBuilderError("Call .trigger() before adding steps.");
     }
     if (this.nodeIds.has(input.id)) {
       throw new WorkflowBuilderError(
@@ -264,7 +265,7 @@ export class WorkflowBuilder {
     if (!this.persistence) {
       throw new WorkflowBuilderError(
         ".save() requires the builder to be created via kh.workflowBuilder(). " +
-        "Standalone WorkflowBuilder instances do not have access to the KeeperHub API."
+          "Standalone WorkflowBuilder instances do not have access to the KeeperHub API."
       );
     }
     return this.persistence.create(this.build());
@@ -288,7 +289,7 @@ export class WorkflowBuilder {
     if (!this.persistence) {
       throw new WorkflowBuilderError(
         ".run() requires the builder to be created via kh.workflowBuilder(). " +
-        "Standalone WorkflowBuilder instances do not have access to the KeeperHub API."
+          "Standalone WorkflowBuilder instances do not have access to the KeeperHub API."
       );
     }
     const wf = await this.save();
@@ -427,9 +428,6 @@ export class WorkflowBranchBuilder {
   }
 
   endIf(): WorkflowBuilder {
-    return this.ctx.mergeBranches([
-      ...this.trueLeafIds,
-      ...this.falseLeafIds,
-    ]);
+    return this.ctx.mergeBranches([...this.trueLeafIds, ...this.falseLeafIds]);
   }
 }

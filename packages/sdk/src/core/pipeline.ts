@@ -1,7 +1,5 @@
 import type {
   AgentObservation,
-  CreateWorkflowInput,
-  GenerateWorkflowInput,
   PaymentExecutionOptions,
   PaymentPolicy,
   PaymentPreflightResult,
@@ -56,7 +54,10 @@ function formatUsdc(microUsdc: number): string {
  * high-entropy fallback for older environments.
  */
 function generateIdempotencyKey(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return `pipeline-${crypto.randomUUID()}`;
   }
   // Fallback: two random segments give ~22 chars of base-36 entropy
@@ -71,23 +72,29 @@ function buildPipelineSummary(result: PipelineResult): string {
       ? ` Approval URL: ${result.payment.approvalUrl}`
       : " No approval URL returned — contact the workflow owner.";
     return (
-      `Execution paused — payment approval required. ` +
+      "Execution paused — payment approval required. " +
       `Estimated cost: ${result.payment?.estimatedCost ?? "unknown"} USDC.${urlMsg}`
     );
   }
   if (result.status === "running") {
     return `Workflow started (fire-and-forget). Execution ID: ${result.executionId ?? "pending"}.`;
   }
-  const succeeded = result.status === "completed" || result.status === "success";
-  const attemptStr = result.attempts > 1 ? ` after ${result.attempts} attempts` : "";
+  const succeeded =
+    result.status === "completed" || result.status === "success";
+  const attemptStr =
+    result.attempts > 1 ? ` after ${result.attempts} attempts` : "";
   if (succeeded) {
     return `Workflow completed successfully${attemptStr}. Execution ID: ${result.executionId}.`;
   }
-  const errMsg = result.execution?.error ? ` Error: ${result.execution.error}.` : "";
+  const errMsg = result.execution?.error
+    ? ` Error: ${result.execution.error}.`
+    : "";
   return `Workflow ${result.status}${attemptStr}. Execution ID: ${result.executionId ?? "unknown"}.${errMsg}`;
 }
 
-function buildPipelineErrorObservation(error: unknown): AgentObservation<PipelineResult> {
+function buildPipelineErrorObservation(
+  error: unknown
+): AgentObservation<PipelineResult> {
   if (error instanceof KeeperHubError) {
     return {
       ok: false,
@@ -97,9 +104,13 @@ function buildPipelineErrorObservation(error: unknown): AgentObservation<Pipelin
         code: error.code,
         isRetryable: error.isRetryable,
         suggestedAction: error.suggestedAction,
-        details: error instanceof KeeperHubPaymentPolicyError
-          ? { estimatedCost: error.estimatedCost, approvalUrl: error.approvalUrl }
-          : undefined,
+        details:
+          error instanceof KeeperHubPaymentPolicyError
+            ? {
+                estimatedCost: error.estimatedCost,
+                approvalUrl: error.approvalUrl,
+              }
+            : undefined,
       },
       summary: `Pipeline failed: ${error.message} [${error.code}] — ${error.suggestedAction}`,
     };
@@ -108,7 +119,12 @@ function buildPipelineErrorObservation(error: unknown): AgentObservation<Pipelin
   return {
     ok: false,
     action: "pipeline.wait",
-    error: { message, code: "UNKNOWN", isRetryable: false, suggestedAction: "Unexpected error — do not retry." },
+    error: {
+      message,
+      code: "UNKNOWN",
+      isRetryable: false,
+      suggestedAction: "Unexpected error — do not retry.",
+    },
     summary: `Pipeline failed with an unexpected error: ${message}`,
   };
 }
@@ -118,7 +134,12 @@ function buildPipelineErrorObservation(error: unknown): AgentObservation<Pipelin
 type PipelineTarget =
   | { kind: "workflow"; workflowId: string; input?: Record<string, unknown> }
   | { kind: "listed-workflow"; slug: string; input?: Record<string, unknown> }
-  | { kind: "generate"; prompt: string; context?: string; input?: Record<string, unknown> };
+  | {
+      kind: "generate";
+      prompt: string;
+      context?: string;
+      input?: Record<string, unknown>;
+    };
 
 // ─── Pipeline ─────────────────────────────────────────────────────────────────
 
@@ -130,7 +151,10 @@ export class WorkflowPipeline {
   private paymentOptions?: PaymentExecutionOptions;
   private preflightRequested = false;
   private paymentPolicy?: PaymentPolicy;
-  private retryOptions: Required<PipelineRetryOptions> = { attempts: 1, delayMs: 0 };
+  private retryOptions: Required<PipelineRetryOptions> = {
+    attempts: 1,
+    delayMs: 0,
+  };
   private waitOptions?: WaitForCompletionOptions;
   private modifyFn?: (wf: Workflow) => Workflow | Partial<UpdateWorkflowInput>;
   private runtimeInput?: Record<string, unknown>;
@@ -272,7 +296,9 @@ export class WorkflowPipeline {
    *   else console.error(obs.summary); // escalate
    * }
    */
-  async safeWait(options?: WaitForCompletionOptions): Promise<AgentObservation<PipelineResult>> {
+  async safeWait(
+    options?: WaitForCompletionOptions
+  ): Promise<AgentObservation<PipelineResult>> {
     try {
       const result = await this.wait(options);
       return {
@@ -305,7 +331,7 @@ export class WorkflowPipeline {
       if (this.preflightRequested || this.paymentPolicy) {
         throw new KeeperHubValidationError(
           ".preflight() and .pay() are not applicable to listed workflows — " +
-          "x402 payment is resolved inline. Use .payIfNeeded() to pass payment headers."
+            "x402 payment is resolved inline. Use .payIfNeeded() to pass payment headers."
         );
       }
       return this.runListedWorkflow();
@@ -317,10 +343,18 @@ export class WorkflowPipeline {
   // ─── Listed-workflow path ──────────────────────────────────────────────────
 
   private async runListedWorkflow(): Promise<PipelineResult> {
-    const t = this.target as { kind: "listed-workflow"; slug: string; input?: Record<string, unknown> };
+    const t = this.target as {
+      kind: "listed-workflow";
+      slug: string;
+      input?: Record<string, unknown>;
+    };
     const mergedInput = { ...(t.input ?? {}), ...(this.runtimeInput ?? {}) };
 
-    const result = await this.payments.execute(t.slug, mergedInput, this.paymentOptions);
+    const result = await this.payments.execute(
+      t.slug,
+      mergedInput,
+      this.paymentOptions
+    );
 
     return {
       executionId: result.executionId,
@@ -334,13 +368,16 @@ export class WorkflowPipeline {
   // ─── Owned-workflow / generate path ───────────────────────────────────────
 
   private async runOwnedWorkflow(): Promise<PipelineResult> {
-    const { workflowId, executionInput, wasGenerated } = await this.resolveTarget();
+    const { workflowId, executionInput, wasGenerated } =
+      await this.resolveTarget();
 
     const paymentResult: PipelinePaymentResult = {};
     let preflightResult: PaymentPreflightResult | undefined;
     let preflightTimestamp = 0;
 
-    const runPreflight = async (): Promise<"pending_approval" | "ok" | "skipped"> => {
+    const runPreflight = async (): Promise<
+      "pending_approval" | "ok" | "skipped"
+    > => {
       preflightResult = await this.payments.preflight(workflowId);
       preflightTimestamp = Date.now();
       paymentResult.estimatedCost = preflightResult.estimatedCost;
@@ -348,11 +385,12 @@ export class WorkflowPipeline {
       paymentResult.status = "queued";
 
       if (!preflightResult.feasible) {
-        const codeHint = preflightResult.feasibilityCode === "insufficient_balance"
-          ? " Top up your KeeperHub wallet to continue."
-          : preflightResult.feasibilityCode === "payment_method_unsupported"
-            ? " This workflow does not accept x402 payment."
-            : "";
+        const codeHint =
+          preflightResult.feasibilityCode === "insufficient_balance"
+            ? " Top up your KeeperHub wallet to continue."
+            : preflightResult.feasibilityCode === "payment_method_unsupported"
+              ? " This workflow does not accept x402 payment."
+              : "";
         throw new KeeperHubPaymentPolicyError(
           `Workflow not feasible: ${preflightResult.reason ?? "insufficient balance or unsupported payment method"}.${codeHint}`,
           preflightResult.estimatedCost
@@ -382,15 +420,24 @@ export class WorkflowPipeline {
             `Invalid dailyBudget value "${this.paymentPolicy.dailyBudget}". Must be a non-negative USDC decimal, e.g. "1.00".`
           );
         }
-        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const { transactions } = await this.payments.history({ since: since24h, status: "confirmed" });
-        const spentMicro = transactions.reduce((sum, tx) => sum + (parseUsdcMicro(tx.amountUsdc) ?? 0), 0);
-        const estimatedMicro = parseUsdcMicro(preflightResult.estimatedCost) ?? 0;
+        const since24h = new Date(
+          Date.now() - 24 * 60 * 60 * 1000
+        ).toISOString();
+        const { transactions } = await this.payments.history({
+          since: since24h,
+          status: "confirmed",
+        });
+        const spentMicro = transactions.reduce(
+          (sum, tx) => sum + (parseUsdcMicro(tx.amountUsdc) ?? 0),
+          0
+        );
+        const estimatedMicro =
+          parseUsdcMicro(preflightResult.estimatedCost) ?? 0;
         if (spentMicro + estimatedMicro > dailyCap) {
           throw new KeeperHubPaymentPolicyError(
             `Daily budget of ${this.paymentPolicy.dailyBudget} USDC would be exceeded. ` +
-            `Rolling 24h spend: ${formatUsdc(spentMicro)} USDC + estimated ${preflightResult.estimatedCost} USDC = ` +
-            `${formatUsdc(spentMicro + estimatedMicro)} USDC.`,
+              `Rolling 24h spend: ${formatUsdc(spentMicro)} USDC + estimated ${preflightResult.estimatedCost} USDC = ` +
+              `${formatUsdc(spentMicro + estimatedMicro)} USDC.`,
             preflightResult.estimatedCost
           );
         }
@@ -399,10 +446,15 @@ export class WorkflowPipeline {
       const forceApproval = this.paymentPolicy?.mode === "requireApproval";
       const approvalThreshold = this.paymentPolicy?.requireApprovalAbove;
       if (forceApproval || approvalThreshold) {
-        const thresholdMicro = approvalThreshold ? parseUsdcMicro(approvalThreshold) : 0;
+        const thresholdMicro = approvalThreshold
+          ? parseUsdcMicro(approvalThreshold)
+          : 0;
         const estimatedMicro = parseUsdcMicro(preflightResult.estimatedCost);
-        const needsApproval = forceApproval ||
-          (thresholdMicro !== null && estimatedMicro !== null && estimatedMicro > thresholdMicro);
+        const needsApproval =
+          forceApproval ||
+          (thresholdMicro !== null &&
+            estimatedMicro !== null &&
+            estimatedMicro > thresholdMicro);
         if (needsApproval) {
           paymentResult.status = "pending_approval";
           paymentResult.approvalUrl = preflightResult.approvalUrl;
@@ -433,8 +485,8 @@ export class WorkflowPipeline {
           if (this.preflightRequested) {
             console.warn(
               "[keeperhub-sdk] Payment preflight endpoint not available; " +
-              "proceeding without cost estimate. " +
-              "Implement GET /api/workflows/{id}/payment/preflight."
+                "proceeding without cost estimate. " +
+                "Implement GET /api/workflows/{id}/payment/preflight."
             );
           }
           delete paymentResult.estimatedCost;
@@ -450,7 +502,11 @@ export class WorkflowPipeline {
 
       for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
-          if (attempt > 1 && preflightResult && (Date.now() - preflightTimestamp) > preflightMaxAgeMs) {
+          if (
+            attempt > 1 &&
+            preflightResult &&
+            Date.now() - preflightTimestamp > preflightMaxAgeMs
+          ) {
             try {
               const outcome = await runPreflight();
               if (outcome === "pending_approval") {
@@ -464,13 +520,20 @@ export class WorkflowPipeline {
                 };
               }
             } catch (preflightErr) {
-              if (preflightErr instanceof KeeperHubPaymentPolicyError) throw preflightErr;
-              if (preflightErr instanceof KeeperHubAuthError) throw preflightErr;
-              if (preflightErr instanceof KeeperHubRateLimitError) throw preflightErr;
+              if (preflightErr instanceof KeeperHubPaymentPolicyError)
+                throw preflightErr;
+              if (preflightErr instanceof KeeperHubAuthError)
+                throw preflightErr;
+              if (preflightErr instanceof KeeperHubRateLimitError)
+                throw preflightErr;
             }
           }
 
-          const handle = await this.workflows.execute(workflowId, executionInput, { idempotencyKey });
+          const handle = await this.workflows.execute(
+            workflowId,
+            executionInput,
+            { idempotencyKey }
+          );
 
           if (!this.shouldWait) {
             return {
@@ -485,7 +548,10 @@ export class WorkflowPipeline {
 
           const execution = await handle.waitForCompletion(this.waitOptions);
 
-          if ((execution.status === "error" || execution.status === "failed") && attempt < attempts) {
+          if (
+            (execution.status === "error" || execution.status === "failed") &&
+            attempt < attempts
+          ) {
             await this.sleep(this.retryOptions.delayMs);
             continue;
           }
@@ -538,8 +604,15 @@ export class WorkflowPipeline {
         : undefined;
 
     if (this.target!.kind === "workflow") {
-      const t = this.target as { workflowId: string; input?: Record<string, unknown> };
-      return { workflowId: t.workflowId, executionInput: mergedInput(t.input), wasGenerated: false };
+      const t = this.target as {
+        workflowId: string;
+        input?: Record<string, unknown>;
+      };
+      return {
+        workflowId: t.workflowId,
+        executionInput: mergedInput(t.input),
+        wasGenerated: false,
+      };
     }
 
     const genTarget = this.target as {
@@ -580,7 +653,11 @@ export class WorkflowPipeline {
       throw error;
     }
 
-    return { workflowId: saved.id, executionInput: mergedInput(genTarget.input), wasGenerated: true };
+    return {
+      workflowId: saved.id,
+      executionInput: mergedInput(genTarget.input),
+      wasGenerated: true,
+    };
   }
 
   private simulationState() {

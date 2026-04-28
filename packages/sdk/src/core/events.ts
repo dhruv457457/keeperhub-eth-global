@@ -15,7 +15,7 @@ const MAX_SEEN_ENTRIES = 500;
 const MAX_CONSECUTIVE_ERRORS = 3;
 
 /** Backoff multiplier per consecutive failure (capped at 60s) */
-const ERROR_BACKOFF_MS = 5_000;
+const ERROR_BACKOFF_MS = 5000;
 
 function isTerminalStatus(status: string): boolean {
   return (
