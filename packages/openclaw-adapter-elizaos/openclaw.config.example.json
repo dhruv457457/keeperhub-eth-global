@@ -1,0 +1,12 @@
+{
+  "plugins": {
+    "eliza-adapter": {
+      "plugins": ["@keeperhub/elizaos"],
+      "settings": {
+        "KEEPERHUB_API_KEY": "${KEEPERHUB_API_KEY}",
+        "KEEPERHUB_BASE_URL": "${KEEPERHUB_BASE_URL:-https://app.keeperhub.com}"
+      },
+      "agentName": "KeeperHub DeFi Agent"
+    }
+  }
+}

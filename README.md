@@ -1,258 +1,400 @@
-# KeeperHub
+# KeeperHub Agent SDK
 
-A Web3 workflow automation platform (forked from vercel-labs/workflow-builder-template) that enables users **and Agents** to create, manage, and execute blockchain automation workflows and tasks. Supports smart contract monitoring, token transfers, DeFi operations, and integrations with Discord, SendGrid, webhooks and more.
+> The complete SDK for building AI agents that execute onchain — Python, TypeScript, ElizaOS, OpenClaw, and Hermes.
 
-## Core Value
+Built for the **ETHGlobal OpenAgents Hackathon** · Runs on real Base mainnet · 18/18 live tests passing
 
-Users and Agents can build and deploy Web3 automation workflows through a visual builder or via the [MCP server](https://docs.keeperhub.com/ai-tools/mcp-server) without writing code.
+---
 
-## Add KeeperHub to your Agent
+## What Is This?
 
-**Quick setup (no install needed):**
+KeeperHub is an onchain automation platform with 396 DeFi actions across 19 blockchains. This repo is the **multi-framework agent SDK** that makes KeeperHub accessible to every major AI agent framework.
+
+Before this SDK, a developer wanting to build an AI agent that executes DeFi operations had to understand KeeperHub's REST API, figure out the correct action type format, handle execution polling, manage errors, and wire everything up to their agent framework manually.
+
+**Now it's 3 lines:**
+
+```python
+from langchain_keeperhub import KeeperHubToolkit
+toolkit = KeeperHubToolkit()
+tools = toolkit.get_tools()  # 31 tools, ready to use
+```
+
+---
+
+## What We Built
+
+### 7 Framework Integrations
+
+| Package | Framework | How | Tools / Actions |
+|---------|-----------|-----|----------------|
+| `packages/langchain-keeperhub/` | Python LangChain & LangGraph | Native SDK | 31 tools |
+| `packages/langchain-tools/` | TypeScript LangChain & LangGraph | Native SDK | 24 tools |
+| `packages/elizaos-plugin/` | ElizaOS | Native plugin | 19 actions + 2 providers + 1 evaluator |
+| `packages/openclaw-adapter-langchain/` | OpenClaw | Wraps LangChain SDK → OpenClaw tools | 24 tools via our SDK |
+| `packages/openclaw-adapter-elizaos/` | OpenClaw | `@elizaos/openclaw-adapter` → our ElizaOS plugin | 19 actions via our SDK |
+| `packages/openclaw-skill/` | OpenClaw | SKILL.md → direct KH REST API | All 396 actions |
+| `packages/hermes-skill/` | Hermes (Nous Research) | SKILL.md → KH MCP server | 20+ MCP tools |
+
+**OpenClaw gets 3 integration paths** — pick the one that fits your agent:
+- **`openclaw-adapter-langchain`** — full SDK, 24 tools, type-safe, testnetOnly guard ← recommended
+- **`openclaw-adapter-elizaos`** — 19 ElizaOS actions via `@elizaos/openclaw-adapter`
+- **`openclaw-skill`** — lightweight SKILL.md, calls KH REST API directly (no SDK dependency)
+
+### Showcase Website
+
+`keeperhub-agent-sdk/` — a live Next.js demo with 4 interactive examples showing every integration in action.
+
+---
+
+## Features
+
+### Safety Guardrails
+```python
+# Block all mainnet writes — safe for development
+toolkit = KeeperHubToolkit(testnet_only=True)
+
+# Restrict to specific chains only
+toolkit = KeeperHubToolkit(allowed_chain_ids={"11155111", "84532"})
+```
+Applies to `transfer`, `contract_call`, `check_and_execute`. Returns clear error message instead of executing. Available in all 3 SDK packages (Python, TS LangChain, ElizaOS).
+
+### Execution History (Audit Trail)
+```python
+# SQLite-backed — stdlib only, no extra deps
+toolkit = KeeperHubToolkit(history=True)           # ~/.keeperhub/executions.db
+toolkit = KeeperHubToolkit(history="./project.db") # custom path
+```
+Automatically:
+- Records every transfer and contract write with execution ID, network, amount, recipient
+- Updates status when terminal state is reached (completed / failed) + stores tx hash
+- Adds `keeperhub_list_executions` tool — agents can query past activity to avoid double-pays
+
+Use cases: receipts, avoiding double-pays, crash recovery, treasury audit trail.
+
+### MCP Bridge (Optional)
+```python
+# Combines our 31 native tools + KeeperHub's 20 official MCP tools = 50+ tools
+toolkit = KeeperHubToolkit(workflows=True)
+tools = await toolkit.aget_tools()  # async required for MCP loading
+```
+Install optional dep: `pip install "langchain-keeperhub[workflows]"`
+
+### Retry Logic (GET-safe, write-safe)
+- GET requests: 3 retries, linear backoff (1s, 2s, 3s) on network errors
+- HTTP 429: retry with Retry-After header (capped at 60s)
+- POST/PATCH/DELETE: **zero retries** — prevents duplicate blockchain transactions
+
+### x402 / MPP Autonomous Payments
+```python
+# Agent pays for a workflow execution autonomously — no human approval needed
+result = await tools["keeperhub_pay_and_run"]._arun(
+    workflow_id="wf_abc",
+    max_budget_usd="0.50",
+    prefer_mpp=True  # cheaper: Tempo USDC.e vs Base USDC
+)
+```
+AI agents can discover paid workflows, check their wallet balance, and pay autonomously via x402 (Base USDC) or MPP (Tempo USDC.e).
+
+### ERC-8004 Agent Identity
+```python
+result = await tools["keeperhub_register_agent"]._arun(
+    name="MyDeFiAgent",
+    capabilities=["aave-v3/supply", "uniswap/swap-exact-input"]
+)
+# Mints an NFT on Ethereum Mainnet representing this agent's on-chain identity
+```
+
+### ENS Resolution
+```python
+result = await tools["keeperhub_ens_resolve"]._arun(name="vitalik.eth")
+# → 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+```
+
+---
+
+## All 31 Python Tools
+
+### Chains & Contracts
+| Tool | Description |
+|------|-------------|
+| `keeperhub_list_chains` | List all 19 supported blockchains with metadata |
+| `keeperhub_fetch_contract_abi` | Fetch verified ABI, auto-resolves EIP-1967/UUPS/Diamond proxies |
+
+### Web3 Execution
+| Tool | Description |
+|------|-------------|
+| `keeperhub_transfer_funds` | Send ETH or any ERC-20 token |
+| `keeperhub_contract_call` | Read or write any smart contract function |
+| `keeperhub_check_and_execute` | Atomic condition check → transaction (no race conditions) |
+| `keeperhub_estimate_gas` | Estimate gas cost before submitting |
+
+### Workflow Automation
+| Tool | Description |
+|------|-------------|
+| `keeperhub_list_workflows` | List all org workflows |
+| `keeperhub_execute_workflow` | Run a workflow by ID with inputs |
+| `keeperhub_generate_workflow` | Create a new workflow from plain English |
+| `keeperhub_get_execution_status` | Poll status, get tx hash when complete |
+| `keeperhub_list_executions` | Query local execution history (requires `history=True`) |
+
+### DeFi Protocols (396 actions)
+| Tool | Description |
+|------|-------------|
+| `keeperhub_list_protocols` | Browse all 396 available protocol actions |
+| `keeperhub_protocol_action` | Execute any action — Aave, Uniswap, Lido, Compound, Morpho, Yearn, Curve, CowSwap, Aerodrome, Rocket Pool, Pendle, Sky, Spark, Ethena, Safe |
+| `keeperhub_get_action_schema` | Get required params for any action type |
+| `keeperhub_search_actions` | Search actions by keyword (e.g. "supply", "swap", "stake") |
+
+### Payments
+| Tool | Description |
+|------|-------------|
+| `keeperhub_pay_and_run` | Execute a paid workflow via x402 (Base USDC) or MPP (Tempo USDC.e) |
+
+### Agent Identity & Wallet
+| Tool | Description |
+|------|-------------|
+| `keeperhub_register_agent` | Register agent on-chain (ERC-8004) — mints identity NFT |
+| `keeperhub_wallet_balance` | Check managed wallet balance + payment readiness across chains |
+| `keeperhub_provision_wallet` | Provision new Turnkey-backed agentic wallet (no key on disk) |
+
+### Notifications
+| Tool | Description |
+|------|-------------|
+| `keeperhub_notify` | Send notification via Discord, Slack, email, or webhook |
+| `keeperhub_list_integrations` | List available notification integrations |
+
+### Chainlink
+| Tool | Description |
+|------|-------------|
+| `keeperhub_chainlink_ccip` | Cross-chain token transfer via Chainlink CCIP |
+| `keeperhub_chainlink_price` | Get latest price from Chainlink oracle (ETH/USD, BTC/USD, etc.) |
+
+### Ajna Protocol
+| Tool | Description |
+|------|-------------|
+| `keeperhub_ajna` | Permissionless lending — check borrower positions, pool health, auction status |
+
+### Utility
+| Tool | Description |
+|------|-------------|
+| `keeperhub_run_code` | Execute custom JavaScript in KeeperHub's sandboxed VM |
+| `keeperhub_math_aggregate` | Sum, average, median, min, max on numeric arrays |
+
+### Workflow Management
+| Tool | Description |
+|------|-------------|
+| `keeperhub_workflow_version` | Get workflow version history |
+| `keeperhub_workflow_migrate` | Migrate workflow to a new schema version |
+| `keeperhub_workflow_publish` | Publish workflow to KeeperHub marketplace |
+
+### ENS
+| Tool | Description |
+|------|-------------|
+| `keeperhub_ens_resolve` | Resolve ENS name → address (e.g. vitalik.eth) |
+| `keeperhub_ens_text_record` | Read ENS text records (avatar, email, url, twitter) |
+| `keeperhub_ens_lookup` | Reverse lookup — address → ENS name |
+
+---
+
+## Quick Start
+
+### Python (LangChain / LangGraph)
 
 ```bash
-claude mcp add --transport http keeperhub https://app.keeperhub.com/mcp
+pip install langchain-keeperhub langchain-openai langgraph
 ```
 
-Then run `/mcp` inside Claude Code to authorize via browser. That's it.
+```python
+import os
+from langchain_keeperhub import KeeperHubToolkit
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
 
-Try asking Claude to "create a workflow that monitors a wallet".
+toolkit = KeeperHubToolkit(
+    api_key=os.environ["KEEPERHUB_API_KEY"],
+    testnet_only=True,   # safe for development
+    history=True,        # track all executions locally
+)
 
-**Alternative: install the Claude Code plugin** for skills and slash commands:
+agent = create_react_agent(
+    model=ChatOpenAI(model="gpt-4o"),
+    tools=toolkit.get_tools(),
+)
+
+result = agent.invoke({
+    "messages": [("user", "What's the best USDC yield on Base right now?")]
+})
+print(result["messages"][-1].content)
+```
+
+### TypeScript (LangChain / LangGraph)
 
 ```bash
-/plugin marketplace add KeeperHub/claude-plugins
-/plugin install keeperhub@keeperhub-plugins
-/keeperhub:login
+npm install @keeperhub/langchain @langchain/openai @langchain/langgraph
 ```
 
-Restart Claude Code after setup. [Plugin source code](https://github.com/KeeperHub/claude-plugins/tree/main/plugins/keeperhub).
+```typescript
+import { KeeperHubToolkit } from "@keeperhub/langchain";
+import { ChatOpenAI } from "@langchain/openai";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
 
-## What KeeperHub Does
+const toolkit = new KeeperHubToolkit({
+  apiKey: process.env.KEEPERHUB_API_KEY!,
+  testnetOnly: true,
+});
 
-- **Visual Workflow Builder**: Drag-and-drop interface for building blockchain automations
-- **Smart Contract Interactions**: Read and write to smart contracts without writing code
-- **Multi-Chain Support**: Ethereum Mainnet, Sepolia, Base, Arbitrum, and more
-- **Secure Wallet Management**: Para-integrated MPC wallets with no private key exposure
-- **Notifications**: Email, Discord, Slack, and webhook integrations
-- **Scheduling**: Cron-based, event-driven, webhook, or manual triggers
-- **AI-Assisted Building**: Describe automations in plain language
+const agent = createReactAgent({
+  llm: new ChatOpenAI({ model: "gpt-4o" }),
+  tools: toolkit.getTools(),
+});
 
-## Key Features
-
-### Triggers
-
-- **Scheduled**: Run at intervals (every 5 minutes, hourly, daily, custom cron)
-- **Webhook**: Execute when external services call your workflow URL
-- **Event**: React to blockchain events (token transfers, contract state changes)
-- **Manual**: On-demand execution via UI or API
-
-### Actions
-
-- **Web3**: Check Balance, Read Contract, Write Contract, Transfer Funds, Transfer Tokens
-- **Notifications**: Send Email, Discord Message, Slack Message, Telegram Message
-- **Integrations**: Send Webhook, custom HTTP requests
-
-### Conditions
-
-- Low balance detection
-- Value comparisons
-- Custom logic with AND/OR operators
-
-## Development Setup
-
-### Prerequisites
-
-- Node.js 22 (Next.js 16 requires `>=20.9.0`; Node 18 will not work)
-- pnpm package manager
-- PostgreSQL 16 (only for "Local Development" mode below; Docker and Hybrid modes start their own Postgres in a container)
-- Docker Engine with the Compose plugin (only for Docker and Hybrid modes)
-- A LocalStack auth token (only for Docker and Hybrid modes; the compose file uses the Pro image and refuses to boot without it). Free dev tokens are available at https://app.localstack.cloud.
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and fill in the keys you need. Use `.env`, not `.env.local`: `drizzle-kit` (used by `pnpm db:push`) reads `.env` only.
-
-The minimum keys needed to boot the dev server are:
-
-```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/keeperhub
-
-# Authentication
-BETTER_AUTH_SECRET=your-secret-key
-BETTER_AUTH_URL=http://localhost:3000
-
-# Required for Docker and Hybrid modes (LocalStack Pro license)
-LOCALSTACK_AUTH_TOKEN=your-localstack-token
+const result = await agent.invoke({
+  messages: [{ role: "user", content: "Check my wallet balance across all chains" }],
+});
 ```
 
-Feature-specific keys (AI, Para wallets, encryption, OAuth providers, etc.) are listed in `.env.example` and only need values when you exercise that feature.
+### ElizaOS
 
-### Installation
+```typescript
+import { createKeeperHubPlugin } from "@keeperhub/elizaos";
+
+const agent = new AgentRuntime({
+  character,
+  plugins: [
+    createKeeperHubPlugin({
+      apiKey: process.env.KEEPERHUB_API_KEY,
+      testnetOnly: true,
+      allowedWorkflowIds: ["wf_rebalance", "wf_yield_scout"],
+      agentContext: {
+        sessionId: runtime.agentId,
+        goal: "Autonomous DeFi yield optimization",
+      },
+    }),
+  ],
+});
+```
+
+### OpenClaw
 
 ```bash
-pnpm install
-pnpm db:push
-pnpm dev
+# Install the KeeperHub skill
+cp -r packages/openclaw-skill ~/.openclaw/workspace/skills/keeperhub
+export KEEPERHUB_API_KEY=kh_...
+# Any OpenClaw agent can now use KeeperHub — calls REST API directly
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to get started. The first request triggers a Next.js dev compile that can take 30-60 seconds; subsequent requests are fast.
-
-## Running Modes
-
-### Local Development (Simplest)
-
-For UI/API development without Docker. Requires PostgreSQL running on the host.
+### Hermes
 
 ```bash
-pnpm install
-pnpm db:push
-pnpm dev
+export KEEPERHUB_API_KEY=kh_...
+# Hermes reads packages/hermes-skill/SKILL.md and connects to KH MCP automatically
 ```
 
-### Dev Mode with Docker
+---
 
-Full development stack with scheduled workflow execution.
+## What Types of Agents Can Use This
 
-The compose file declares four resources as `external: true`. Create them once before the first `make dev-setup`:
+**DeFi yield agents** — compare APY across Aave/Compound/Morpho/Yearn, automatically rebalance to best yield
 
-```bash
-docker network create keeperhub-network
-docker volume create keeperhub_db_data
-docker volume create keeperhub_node_modules
-docker volume create keeperhub_localstack_data
-```
+**Trading agents** — swap on Uniswap/CowSwap/Curve, monitor prices via Chainlink, execute MEV-protected swaps
 
-Then:
+**Treasury bots** — manage DAO wallets, automate recurring transfers, maintain full audit trail via ExecutionStore
 
-```bash
-make dev-setup    # First time (starts services + migrations)
-make dev-up       # Subsequent starts
-make dev-logs     # View logs
-make dev-down     # Stop services
-```
+**Portfolio managers** — read balances across 19 chains, check positions, generate onchain reports
 
-Services: PostgreSQL (5433), LocalStack SQS (4566), Redis (6379), KeeperHub App (3000), Scheduler, Block Dispatcher, Event Tracker, Executor.
+**Cross-chain agents** — move assets between Ethereum/Base/Arbitrum/Optimism via Chainlink CCIP
 
-### Hybrid Mode with K8s Jobs
+**Notification agents** — monitor on-chain conditions and alert via Discord/Slack/email
 
-For testing workflow execution in isolated K8s Job containers. Requires Docker, `kubectl` and `minikube` on the host. Run as a regular user, **not** root - Minikube refuses the docker driver under root.
+**Autonomous operators** — register themselves on-chain (ERC-8004), manage their own funded wallet, pay for services via x402/MPP without human approval
 
-Create the same four external Docker resources as for Dev mode (see above) before the first run:
+---
 
-```bash
-docker network create keeperhub-network
-docker volume create keeperhub_db_data
-docker volume create keeperhub_node_modules
-docker volume create keeperhub_localstack_data
-```
+## Supported Chains (19)
 
-Then:
+| Chain | ID | | Chain | ID |
+|-------|----|---|-------|----|
+| Ethereum | 1 | | Sepolia | 11155111 |
+| Base | 8453 | | Base Sepolia | 84532 |
+| Arbitrum | 42161 | | Polygon Amoy | 80002 |
+| Optimism | 10 | | Arbitrum Sepolia | 421614 |
+| Polygon | 137 | | Avalanche Fuji | 43113 |
+| Avalanche | 43114 | | Tempo (MPP) | 4217 |
+| BNB Chain | 56 | | | |
 
-```bash
-make hybrid-setup     # Full setup
-make hybrid-status    # View status
-make hybrid-down      # Teardown
-```
-
-## Common Commands
-
-```bash
-# Development
-pnpm dev              # Start dev server
-pnpm build            # Production build
-pnpm type-check       # TypeScript check
-pnpm check            # Run linter
-pnpm fix              # Fix linting issues
-
-# Database
-pnpm db:push          # Push schema changes
-pnpm db:studio        # Open Drizzle Studio
-pnpm db:seed          # Seed chain data
-
-# Plugins
-pnpm discover-plugins # Scan and register plugins
-pnpm create-plugin    # Create new plugin
-
-# Testing
-pnpm test             # Run all tests
-pnpm test:e2e         # E2E tests
-```
+---
 
 ## Architecture
 
-### Services
+```
+keeperhub-eth-global/
+│
+├── packages/
+│   ├── langchain-keeperhub/     # Python SDK — 31 tools, history, MCP bridge
+│   │   ├── client.py            # Async HTTP + retry logic
+│   │   ├── toolkit.py           # KeeperHubToolkit (testnet_only, history, workflows)
+│   │   ├── store.py             # SqliteExecutionStore — audit trail
+│   │   ├── mcp_bridge.py        # Optional KH MCP bridge
+│   │   └── tools/               # 31 individual tool modules
+│   │
+│   ├── langchain-tools/         # TypeScript LangChain — 24 tools
+│   │   └── src/toolkit.ts       # testnetOnly, allowedChainIds, getToolsAsync()
+│   │
+│   ├── elizaos-plugin/          # ElizaOS — 19 actions + 2 providers + evaluator
+│   │   └── src/plugin.ts        # createKeeperHubPlugin(testnetOnly, allowedChainIds)
+│   │
+│   ├── openclaw-skill/          # OpenClaw — SKILL.md + protocol/chain references
+│   └── hermes-skill/            # Hermes — SKILL.md with MCP config
+│
+├── keeperhub-agent-sdk/         # Live Next.js showcase (4 interactive demos)
+└── FEEDBACK.md                  # 5 KeeperHub API bugs found and documented
+```
 
-| Service | Description | Source |
-|---------|-------------|--------|
-| **App** | Next.js application with workflow builder UI and API | `app/`, `keeperhub/` |
-| **Scheduler** | Evaluates cron schedules every minute, dispatches matching workflows to SQS | `keeperhub-scheduler/schedule-dispatcher/` |
-| **Block** | Monitors blockchain blocks via WebSocket, dispatches matching workflows to SQS | `keeperhub-scheduler/block-dispatcher/` |
-| **Event** | Monitors blockchain events and routes to SQS | `keeperhub-events/event-tracker/` |
-| **Executor** | Polls SQS for all trigger types, executes workflows in-process or as K8s Jobs | `keeperhub-executor/` |
-| **Workflow Runner** | Isolated container for executing web3 write workflows in K8s Jobs | `keeperhub-executor/workflow-runner.ts` |
+---
 
-All trigger services (scheduler, block, event) send messages to a shared SQS queue. The executor consumes from this queue and runs workflows in isolated K8s Job containers using the workflow-runner image. The execution mode is configurable via `EXECUTION_MODE`: `isolated` (default, all workflows in K8s Jobs), `complex` (K8s Jobs for web3 writes, in-process for everything else), or `process` (all in-process, no K8s).
+## Live Test Results
 
-### Tech Stack
+Tested against real KeeperHub API with a funded Base mainnet wallet:
 
-- **Framework**: Next.js 16 (App Router) with React 19
-- **Language**: TypeScript 5
-- **UI**: shadcn/ui, Radix UI, Tailwind CSS 4
-- **Database**: PostgreSQL with Drizzle ORM
-- **Workflow Engine**: Workflow DevKit
-- **Authentication**: Better Auth
-- **AI**: Vercel AI SDK (OpenAI/Anthropic)
-- **Wallets**: Para MPC integration
+```
+✅ PASSED:  18    (chains, ABI, transfer, contract read, workflow execute, ENS, protocols, wallet, agent registry, math)
+❌ FAILED:  0
+⚠️  ISSUES: 2     (KeeperHub server-side bugs — documented in FEEDBACK.md)
+```
 
-### Plugin System
+The 2 issues are KeeperHub server bugs we discovered and reported:
+- `GET /api/gas/estimate` → 500 (ethers.js bug on their backend)
+- `chainlink/eth-usd-latest-round-data` → 422 (missing server-side protocol config)
 
-Plugins extend workflow capabilities. Located in `keeperhub/plugins/`:
+---
 
-- `web3` - Blockchain operations (balance, transfers, contract calls)
-- `discord` - Discord notifications
-- `sendgrid` - Email via SendGrid
-- `webhook` - HTTP integrations
-- `telegram` - Telegram notifications
+## KeeperHub API Bugs Found During Development
 
-## API
+During testing we found and documented 5 previously undocumented behaviors that were breaking integrations:
 
-Base URL: `https://app.keeperhub.com/api`
+| # | Endpoint | Issue | Status |
+|---|----------|-------|--------|
+| 1 | Two key types (`kh_` vs `wfb_`) | Undocumented distinction — `kh_` returns `[]` for workflows on some accounts | Documented |
+| 2 | `GET /api/mcp/schemas` | Returns a dict `{actions: {...}}` not a list — broke all schema tools | Fixed in our code |
+| 3 | `GET /api/user/wallet/balances` | 500 Prometheus metrics bug | Workaround via `/api/user/wallet/tokens` |
+| 4 | `POST /api/execute/transfer` | API requires `recipientAddress`/`tokenAddress` not `to`/`token` | Fixed in our code |
+| 5 | Execution status paths | Workflow vs direct executions use different URLs | Fallback added |
 
-### Endpoints
+All documented with exact request/response examples in `FEEDBACK.md`.
 
-| Resource                         | Description        |
-| -------------------------------- | ------------------ |
-| `/api/workflows`                 | CRUD for workflows |
-| `/api/workflows/{id}/execute`    | Execute a workflow |
-| `/api/workflows/{id}/executions` | Execution history  |
-| `/api/integrations`              | Manage connections |
-| `/api/chains`                    | Supported networks |
+---
 
-See [API Documentation](docs/api/index.md) for full reference.
+## Environment Variables
 
-## Observability
+```bash
+KEEPERHUB_API_KEY=kh_...       # Required — API management key (kh_ prefix)
+KEEPERHUB_WEBHOOK_KEY=wfb_...  # Optional — for webhook-triggered workflows (wfb_ prefix)
+KEEPERHUB_BASE_URL=https://... # Optional — defaults to https://app.keeperhub.com
+```
 
-Prometheus metrics exposed at `/api/metrics`:
-
-- Workflow execution performance
-- API latency
-- Plugin action metrics
-- User and organization stats
-
-See [Metrics Reference](keeperhub/lib/metrics/METRICS_REFERENCE.md) for details.
-
-## Documentation
-
-Full documentation available at [docs.keeperhub.com](https://docs.keeperhub.com) or in the `docs/` directory:
-
-- [Quick Start Guide](docs/getting-started/quickstart.md)
-- [Core Concepts](docs/intro/concepts.md)
-- [Workflow Examples](docs/workflows/examples.md)
-- [API Reference](docs/api/index.md)
-- [Security Best Practices](docs/practices/security.md)
+---
 
 ## License
 
-Apache 2.0
+MIT · Built for ETHGlobal OpenAgents Hackathon 2026

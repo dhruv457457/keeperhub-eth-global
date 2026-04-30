@@ -9,6 +9,7 @@ from langchain_keeperhub.tools.workflows import (
     ExecuteWorkflowTool,
     GenerateWorkflowTool,
     GetExecutionStatusTool,
+    ListExecutionsTool,
     ListWorkflowsTool,
 )
 from langchain_keeperhub.tools.protocols import (
@@ -61,6 +62,7 @@ __all__ = [
     "ExecuteWorkflowTool",
     "GenerateWorkflowTool",
     "GetExecutionStatusTool",
+    "ListExecutionsTool",
     # DeFi protocols
     "ListProtocolsTool",
     "ProtocolActionTool",

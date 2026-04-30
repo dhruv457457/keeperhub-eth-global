@@ -35,6 +35,7 @@ class TransferFundsTool(BaseTool):
     )
     args_schema: type[BaseModel] = _TransferInput
     client: object = Field(exclude=True)
+    store: object = Field(default=None, exclude=True)
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -49,9 +50,26 @@ class TransferFundsTool(BaseTool):
             if token:
                 body["tokenAddress"] = token
             result = await self.client.post("/api/execute/transfer", json=body)  # type: ignore[attr-defined]
+            execution_id = result.get("executionId")
+
+            # Record to history store if enabled
+            if self.store and execution_id:
+                try:
+                    from langchain_keeperhub.store import ExecutionRecord
+                    await self.store.record(ExecutionRecord(  # type: ignore[union-attr]
+                        execution_id=execution_id,
+                        kind="transfer",
+                        status=result.get("status", "pending"),
+                        network=network,
+                        amount=amount,
+                        to_address=to,
+                    ))
+                except Exception:
+                    pass  # store failure never affects the main result
+
             return json.dumps({
                 "ok": True,
-                "execution_id": result.get("executionId"),
+                "execution_id": execution_id,
                 "status": result.get("status"),
                 "hint": "Call keeperhub_get_execution_status with this execution_id to get the tx hash.",
             })

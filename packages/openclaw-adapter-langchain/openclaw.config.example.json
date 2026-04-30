@@ -1,0 +1,22 @@
+{
+  "plugins": {
+    "keeperhub-langchain": {
+      "apiKey": "${KEEPERHUB_API_KEY}",
+      "baseUrl": "https://app.keeperhub.com",
+      "testnetOnly": false,
+      "tools": [
+        "list_chains",
+        "transfer",
+        "contract_call",
+        "list_workflows",
+        "execute_workflow",
+        "execution_status",
+        "list_protocols",
+        "protocol_action",
+        "wallet_balance",
+        "ens_resolve",
+        "pay_and_run"
+      ]
+    }
+  }
+}

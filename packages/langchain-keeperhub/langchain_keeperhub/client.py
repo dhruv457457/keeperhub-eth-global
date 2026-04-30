@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 from typing import Any
 
@@ -9,14 +11,23 @@ import httpx
 
 DEFAULT_BASE_URL = "https://app.keeperhub.com"
 DEFAULT_TIMEOUT = 30.0
+_MAX_GET_RETRIES = 3
+
+logger = logging.getLogger("langchain_keeperhub.client")
 
 
 class KeeperHubClient:
     """
     Async HTTP client for the KeeperHub REST API.
 
-    Handles authentication, retries on 429/5xx, and consistent error mapping.
+    Handles authentication, retries on 429/5xx (GET only), and consistent error mapping.
     All tools share a single client instance via KeeperHubToolkit.
+
+    Retry policy:
+    - GET requests: 3 retries with linear backoff (1s, 2s, 3s) on network errors
+    - HTTP 429: retry up to 3x, honour Retry-After header (capped at 60s)
+    - POST/PATCH/DELETE: **no retries** — prevents duplicate writes
+    - All 4xx/5xx (non-429): raise immediately
 
     Usage::
 
@@ -67,23 +78,50 @@ class KeeperHubClient:
         )
 
     async def get(self, path: str, **params: Any) -> Any:
-        """GET request. Pass query params as keyword arguments."""
-        r = await self._client.get(path, params={k: v for k, v in params.items() if v is not None})
-        self._raise_for_status(r)
-        return r.json() if r.content else None
+        """GET request with automatic retry + backoff. Pass query params as keyword arguments."""
+        last_exc: Exception | None = None
+        for attempt in range(_MAX_GET_RETRIES + 1):
+            try:
+                r = await self._client.get(
+                    path, params={k: v for k, v in params.items() if v is not None}
+                )
+                # 429 — rate limit: honour Retry-After, then retry
+                if r.status_code == 429:
+                    wait = min(int(r.headers.get("Retry-After", attempt + 1)), 60)
+                    logger.warning("KeeperHub rate-limited (429). Retrying in %ds (attempt %d).", wait, attempt + 1)
+                    await asyncio.sleep(wait)
+                    continue
+                self._raise_for_status(r)
+                return r.json() if r.content else None
+            except httpx.HTTPStatusError:
+                raise  # 4xx/5xx: no retry
+            except httpx.HTTPError as e:
+                last_exc = e
+                if attempt < _MAX_GET_RETRIES:
+                    wait = attempt + 1  # linear: 1s, 2s, 3s
+                    logger.warning("KeeperHub network error on GET %s. Retrying in %ds (attempt %d): %s", path, wait, attempt + 1, e)
+                    await asyncio.sleep(wait)
+                    continue
+                raise
+        # Should not reach here, but just in case
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("Unexpected retry loop exit")
 
     async def post(self, path: str, json: Any = None, headers: dict | None = None) -> Any:
-        """POST request with JSON body."""
+        """POST request — NO retry (prevents duplicate writes)."""
         r = await self._client.post(path, json=json, headers=headers or {})
         self._raise_for_status(r)
         return r.json() if r.content else None
 
     async def patch(self, path: str, json: Any = None) -> Any:
+        """PATCH request — NO retry (prevents duplicate writes)."""
         r = await self._client.patch(path, json=json)
         self._raise_for_status(r)
         return r.json() if r.content else None
 
     async def delete(self, path: str) -> None:
+        """DELETE request — NO retry."""
         r = await self._client.delete(path)
         self._raise_for_status(r)
 

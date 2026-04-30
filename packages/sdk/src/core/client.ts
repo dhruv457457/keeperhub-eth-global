@@ -96,9 +96,13 @@ export class HttpClient {
   ): Promise<Response> {
     const url = this.buildUrl(path, options?.query);
 
+    // Non-idempotent methods must NOT retry — prevents duplicate writes/transfers
+    const isIdempotent = method === "GET";
+    const effectiveMaxAttempts = isIdempotent ? this.maxAttempts : 1;
+
     let lastError: Error | undefined;
 
-    for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
+    for (let attempt = 1; attempt <= effectiveMaxAttempts; attempt++) {
       try {
         const response = await this.fetchWithTimeout(url, {
           method,

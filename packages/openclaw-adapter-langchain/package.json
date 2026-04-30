@@ -1,0 +1,25 @@
+{
+  "name": "@keeperhub/openclaw-langchain",
+  "version": "1.0.0",
+  "description": "KeeperHub LangChain tools wrapped as native OpenClaw tools",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "openclaw.plugin.json", "README.md"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@keeperhub/langchain": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@keeperhub/langchain": "workspace:*"
+  }
+}

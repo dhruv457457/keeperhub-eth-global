@@ -66,6 +66,22 @@ export interface KeeperHubPluginOptions extends KeeperHubConfig {
    * allowedWorkflowIds: ["wf_compound_usdc", "wf_rebalance_portfolio"]
    */
   allowedWorkflowIds?: string[];
+
+  /**
+   * Block all mainnet write calls — safe for development and testing.
+   * Affects: transfer action.
+   * Testnet chain IDs: 11155111 (Sepolia), 84532 (Base Sepolia), 80002 (Polygon Amoy),
+   *                    421614 (Arbitrum Sepolia), 43113 (Avalanche Fuji), 4217 (Tempo)
+   * @default false
+   */
+  testnetOnly?: boolean;
+
+  /**
+   * Extra allowlist of chain IDs (as strings). Rejects writes to any chain not in this set.
+   * Applied in addition to testnetOnly if both are set.
+   * @example ["11155111", "84532"]
+   */
+  allowedChainIds?: string[];
 }
 
 /**
@@ -108,6 +124,8 @@ export function createKeeperHubPlugin(
     enableWeb3Actions = true,
     enableExecutionEvaluator = true,
     allowedWorkflowIds,
+    testnetOnly = false,
+    allowedChainIds,
     ...config
   } = options;
 
@@ -117,6 +135,8 @@ export function createKeeperHubPlugin(
   const allowedIds = allowedWorkflowIds
     ? new Set(allowedWorkflowIds)
     : undefined;
+
+  const allowedChainSet = allowedChainIds ? new Set(allowedChainIds) : undefined;
 
   const executeOptions: ExecuteWorkflowActionOptions = {
     allowedWorkflowIds: allowedIds,
@@ -140,7 +160,7 @@ export function createKeeperHubPlugin(
     ...(enableWeb3Actions
       ? [
           createListChainsAction(kh),
-          createTransferAction(kh),
+          createTransferAction(kh, { testnetOnly, allowedChainIds: allowedChainSet }),
           createContractReadAction(kh),
           createEstimateGasAction(kh),
           createCheckAndExecuteAction(kh),

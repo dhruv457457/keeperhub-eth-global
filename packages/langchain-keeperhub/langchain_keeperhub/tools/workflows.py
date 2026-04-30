@@ -273,6 +273,7 @@ class GetExecutionStatusTool(BaseTool):
     )
     args_schema: type[BaseModel] = _ExecutionStatusInput
     client: object = Field(exclude=True)
+    store: object = Field(default=None, exclude=True)
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -329,12 +330,80 @@ class GetExecutionStatusTool(BaseTool):
                 except Exception:
                     pass  # logs are optional
 
+            # Update execution store if terminal state reached
+            terminal_states = {"completed", "success", "failed", "error", "cancelled"}
+            exec_status = result.get("status", "")
+            if self.store and exec_status in terminal_states:
+                try:
+                    await self.store.update_status(  # type: ignore[union-attr]
+                        execution_id=execution_id,
+                        status=exec_status,
+                        tx_hash=result.get("tx_hash"),
+                        error=result.get("error"),
+                    )
+                except Exception:
+                    pass  # store failures never affect the main result
+
             return json.dumps(result)
         except Exception as e:
             # Don't reveal whether an ID exists vs access denied
             if "404" in str(e) or "401" in str(e) or "403" in str(e):
                 return json.dumps({"error": "Execution not found or not accessible with your API key."})
             return json.dumps({"error": str(e)})
+
+    def _run(self, **kwargs: object) -> str:  # type: ignore[override]
+        raise NotImplementedError("Use async version")
+
+
+# ─── List Executions (history) ────────────────────────────────────────────────
+
+class _ListExecutionsInput(BaseModel):
+    status: Optional[str] = Field(
+        default=None,
+        description="Filter by status: 'pending', 'running', 'completed', 'failed'. Omit for all."
+    )
+    limit: int = Field(default=20, ge=1, le=100, description="Max results (default 20)")
+
+
+class ListExecutionsTool(BaseTool):
+    """List past write executions from the local history store."""
+
+    name: str = "keeperhub_list_executions"
+    description: str = (
+        "List past write executions (transfers, contract calls) from local history. "
+        "Use to: get receipts, avoid double-paying, check pending transactions, or audit activity. "
+        "Filter by status: pending, running, completed, failed. "
+        "Only available when the toolkit is initialized with history=True."
+    )
+    args_schema: type[BaseModel] = _ListExecutionsInput
+    store: object = Field(exclude=True)
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    async def _arun(self, status: str | None = None, limit: int = 20) -> str:  # type: ignore[override]
+        try:
+            records = await self.store.list(status=status, limit=limit)  # type: ignore[union-attr]
+            return json.dumps({
+                "ok": True,
+                "count": len(records),
+                "status_filter": status,
+                "executions": [
+                    {
+                        "execution_id": r.execution_id,
+                        "kind": r.kind,
+                        "status": r.status,
+                        "created_at": r.created_at,
+                        "tx_hash": r.transaction_hash,
+                        "network": r.network,
+                        "amount": r.amount,
+                        "to": r.to_address,
+                        "error": r.error,
+                    }
+                    for r in records
+                ],
+            })
+        except Exception as e:
+            return json.dumps({"ok": False, "error": str(e)})
 
     def _run(self, **kwargs: object) -> str:  # type: ignore[override]
         raise NotImplementedError("Use async version")

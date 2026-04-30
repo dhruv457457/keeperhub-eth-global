@@ -78,14 +78,44 @@ export type ToolKey =
   | "ens_text_record"
   | "ens_lookup";
 
+// Testnet chain IDs (as strings) — matches Python toolkit
+const TESTNET_CHAIN_IDS = new Set([
+  "11155111", // Ethereum Sepolia
+  "84532",    // Base Sepolia
+  "80002",    // Polygon Amoy
+  "421614",   // Arbitrum Sepolia
+  "43113",    // Avalanche Fuji
+  "4217",     // Tempo (KeeperHub MPP testnet)
+  "80084",    // Berachain bArtio
+]);
+
+const WRITE_TOOL_KEYS = new Set<ToolKey>(["transfer", "contract_call", "check_and_execute"]);
+
 export interface KeeperHubToolkitOptions extends KeeperHubConfig {
   /**
    * Which tools to include. Defaults to all tools.
    * Use this to limit what the agent can do.
-   *
-   * @default all 10 tools
    */
   tools?: ToolKey[];
+  /**
+   * Block all mainnet write calls — safe for development.
+   * Affects: transfer, contract_call, check_and_execute.
+   */
+  testnetOnly?: boolean;
+  /**
+   * Extra allowlist of chain IDs (as strings). Rejects any chain not in this set.
+   * Applied in addition to testnetOnly if both are set.
+   */
+  allowedChainIds?: Set<string> | string[];
+  /**
+   * Load KeeperHub MCP tools in addition to native tools.
+   * Requires: await toolkit.getToolsAsync()
+   */
+  workflows?: boolean;
+  /** Filter MCP tools by server-side name (without keeperhub_ prefix). */
+  mcpInclude?: Set<string>;
+  /** Exclude specific MCP tools by server-side name. */
+  mcpExclude?: Set<string>;
 }
 
 const ALL_TOOLS: ToolKey[] = [
@@ -165,14 +195,101 @@ const ALL_TOOLS: ToolKey[] = [
 export class KeeperHubToolkit {
   readonly kh: KeeperHub;
   private readonly enabledTools: Set<string>;
+  private readonly testnetOnly: boolean;
+  private readonly allowedChainIds: Set<string> | undefined;
+  private readonly workflows: boolean;
+  private readonly mcpInclude: Set<string> | undefined;
+  private readonly mcpExclude: Set<string> | undefined;
 
   constructor(options: KeeperHubToolkitOptions = {}) {
-    const { tools, ...config } = options;
+    const { tools, testnetOnly, allowedChainIds, workflows, mcpInclude, mcpExclude, ...config } = options;
     this.kh = new KeeperHub(config);
     this.enabledTools = new Set(tools ?? ALL_TOOLS);
+    this.testnetOnly = testnetOnly ?? false;
+    this.allowedChainIds = allowedChainIds ? new Set(allowedChainIds) : undefined;
+    this.workflows = workflows ?? false;
+    this.mcpInclude = mcpInclude;
+    this.mcpExclude = mcpExclude;
   }
 
+  /** Wrap a write tool with a testnet/chain guard. */
+  private wrapWithGuard(tool: StructuredToolInterface): StructuredToolInterface {
+    const { testnetOnly, allowedChainIds } = this;
+    const originalInvoke = tool.invoke.bind(tool) as (input: unknown) => Promise<string>;
+    (tool as unknown as { invoke: (input: unknown) => Promise<string> }).invoke = async (input: unknown) => {
+      const network = typeof input === "object" && input !== null
+        ? String((input as Record<string, unknown>).network ?? "")
+        : "";
+      if (network) {
+        if (allowedChainIds && !allowedChainIds.has(network)) {
+          return JSON.stringify({ ok: false, error: `Chain ${network} is not in your allowedChainIds list.` });
+        }
+        if (testnetOnly && !TESTNET_CHAIN_IDS.has(network)) {
+          return JSON.stringify({ ok: false, error: `testnetOnly mode — mainnet write blocked (chain ${network}). Use a testnet chain ID: ${[...TESTNET_CHAIN_IDS].join(", ")}.` });
+        }
+      }
+      return originalInvoke(input);
+    };
+    return tool;
+  }
+
+  /**
+   * Return native tools. Raises if workflows=true (use getToolsAsync instead).
+   */
   getTools(): StructuredToolInterface[] {
+    if (this.workflows) {
+      throw new Error(
+        "This toolkit has workflows=true which requires async MCP loading. " +
+        "Use: const tools = await toolkit.getToolsAsync()"
+      );
+    }
+    return this._buildNativeTools();
+  }
+
+  /**
+   * Async variant — required when workflows=true.
+   * Returns native tools + KeeperHub MCP tools combined.
+   */
+  async getToolsAsync(): Promise<StructuredToolInterface[]> {
+    const native = this._buildNativeTools();
+    if (!this.workflows) return native;
+    // Dynamically import MCP adapters (optional dep)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { MultiServerMCPClient } = await import("@langchain/mcp-adapters" as any) as any;
+      const khConfig = this.kh as unknown as { baseUrl?: string; apiKey: string };
+      const client = new MultiServerMCPClient({
+        keeperhub: {
+          url: `${khConfig.baseUrl ?? "https://app.keeperhub.com"}/mcp`,
+          transport: "streamable_http",
+          headers: { Authorization: `Bearer ${khConfig.apiKey}` },
+        },
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mcpTools: any[] = await client.getTools();
+      const COLLIDING = new Set(["get_execution_status", "list_workflows", "execute_workflow"]);
+      const filtered = mcpTools
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((t: any) => {
+          const name = (t.name as string).replace(/^keeperhub_/, "").replace(/-/g, "_");
+          if (this.mcpInclude && !this.mcpInclude.has(name)) return false;
+          if (this.mcpExclude?.has(name)) return false;
+          if (name === "tools_documentation") return false;
+          return true;
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((t: any) => {
+          const name = (t.name as string).replace(/^keeperhub_/, "").replace(/-/g, "_");
+          t.name = COLLIDING.has(name) ? `keeperhub_workflow_${name}` : `keeperhub_${name}`;
+          return t as StructuredToolInterface;
+        });
+      return [...native, ...filtered];
+    } catch {
+      throw new Error("MCP bridge requires @langchain/mcp-adapters. Install with: npm install @langchain/mcp-adapters");
+    }
+  }
+
+  private _buildNativeTools(): StructuredToolInterface[] {
     const all: Array<[ToolKey, () => StructuredToolInterface]> = [
       // Chain & contract
       ["list_chains", () => createListChainsTool(this.kh)],
@@ -222,7 +339,14 @@ export class KeeperHubToolkit {
 
     return all
       .filter(([key]) => this.enabledTools.has(key))
-      .map(([, factory]) => factory());
+      .map(([key, factory]) => {
+        const tool = factory();
+        // Apply testnet/chain guard on write tools
+        if ((this.testnetOnly || this.allowedChainIds) && WRITE_TOOL_KEYS.has(key)) {
+          return this.wrapWithGuard(tool);
+        }
+        return tool;
+      });
   }
 
   /**

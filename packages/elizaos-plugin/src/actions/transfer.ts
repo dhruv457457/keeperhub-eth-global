@@ -70,7 +70,21 @@ function extractTokenAddress(
   return others.length === 1 ? others[0] : null;
 }
 
-export function createTransferAction(kh: KeeperHub): Action {
+const TESTNET_CHAIN_IDS = new Set([
+  "11155111", // Ethereum Sepolia
+  "84532",    // Base Sepolia
+  "80002",    // Polygon Amoy
+  "421614",   // Arbitrum Sepolia
+  "43113",    // Avalanche Fuji
+  "4217",     // Tempo
+]);
+
+export interface TransferActionOptions {
+  testnetOnly?: boolean;
+  allowedChainIds?: Set<string>;
+}
+
+export function createTransferAction(kh: KeeperHub, opts: TransferActionOptions = {}): Action {
   return {
     name: "KEEPERHUB_TRANSFER",
     similes: [
@@ -122,6 +136,19 @@ export function createTransferAction(kh: KeeperHub): Action {
       }
 
       const network = extractNetwork(text) ?? "8453"; // default to Base
+
+      // Testnet / chain allowlist guard
+      if (opts.allowedChainIds && !opts.allowedChainIds.has(network)) {
+        await callback?.({ text: `⛔ Chain ${network} is not in your allowed chain IDs list.` });
+        return false;
+      }
+      if (opts.testnetOnly && !TESTNET_CHAIN_IDS.has(network)) {
+        await callback?.({
+          text: `⛔ testnet_only mode — mainnet writes are blocked (chain ${network}). Use a testnet chain ID: ${[...TESTNET_CHAIN_IDS].join(", ")}.`,
+        });
+        return false;
+      }
+
       const tokenAddress = extractTokenAddress(text, recipient);
 
       const tokenDesc = tokenAddress

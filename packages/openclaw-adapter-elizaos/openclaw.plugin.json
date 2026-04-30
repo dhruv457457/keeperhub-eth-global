@@ -1,0 +1,29 @@
+{
+  "id": "keeperhub-eliza",
+  "name": "KeeperHub (via ElizaOS adapter)",
+  "description": "Wraps the @keeperhub/elizaos plugin as native OpenClaw tools using @elizaos/openclaw-adapter. Gives any OpenClaw agent 19 KeeperHub actions: DeFi protocols, token transfers, workflow execution, contract reads, ENS resolution, and agent identity.",
+  "version": "1.0.0",
+  "author": "KeeperHub Agent SDK",
+  "homepage": "https://github.com/dhruv457457/keeperhub-eth-global",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "KEEPERHUB_API_KEY": {
+        "type": "string",
+        "description": "KeeperHub API key (kh_ prefix). Get from app.keeperhub.com -> Settings -> API Keys."
+      },
+      "KEEPERHUB_BASE_URL": {
+        "type": "string",
+        "description": "KeeperHub base URL. Defaults to https://app.keeperhub.com",
+        "default": "https://app.keeperhub.com"
+      },
+      "testnetOnly": {
+        "type": "boolean",
+        "description": "Block all mainnet write calls. Recommended for development.",
+        "default": false
+      }
+    },
+    "required": ["KEEPERHUB_API_KEY"]
+  }
+}
