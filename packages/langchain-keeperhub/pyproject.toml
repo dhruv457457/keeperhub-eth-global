@@ -28,6 +28,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+workflows = [
+    "langchain-mcp-adapters>=0.1.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

@@ -287,6 +287,113 @@ async def run_all():
     except Exception as e:
         record("system", "build_system_prompt", FAIL, str(e))
 
+    # ─── SAFETY & HISTORY (new features) ─────────────────────────────────────
+    print("\n── SAFETY & HISTORY ─────────────────────────────────────────────────")
+
+    # testnet_only blocks mainnet
+    try:
+        t_safe = KeeperHubToolkit(testnet_only=True)
+        safe_tools = {t.name: t for t in t_safe.get_tools()}
+        r = json.loads(await safe_tools["keeperhub_transfer_funds"]._arun(
+            network="1", to="0x000000000000000000000000000000000000dead", amount="0.001"
+        ))
+        if not r.get("ok") and "testnet_only" in r.get("error", ""):
+            record("safety", "testnet_only blocks mainnet (chain 1)", PASS,
+                   "Mainnet write correctly rejected without hitting API")
+        else:
+            record("safety", "testnet_only blocks mainnet", FAIL,
+                   f"Expected block, got: {r}")
+    except Exception as e:
+        record("safety", "testnet_only blocks mainnet", FAIL, str(e))
+
+    # allowed_chain_ids blocks unlisted chain
+    try:
+        t_restricted = KeeperHubToolkit(allowed_chain_ids={"11155111"})
+        restricted_tools = {t.name: t for t in t_restricted.get_tools()}
+        r = json.loads(await restricted_tools["keeperhub_transfer_funds"]._arun(
+            network="8453", to="0x000000000000000000000000000000000000dead", amount="0.001"
+        ))
+        if not r.get("ok") and "allowlist" in r.get("error", "").lower():
+            record("safety", "allowed_chain_ids blocks unlisted chain", PASS,
+                   "Base (8453) blocked when only Sepolia (11155111) allowed")
+        else:
+            record("safety", "allowed_chain_ids", FAIL, f"Expected allowlist block, got: {r}")
+    except Exception as e:
+        record("safety", "allowed_chain_ids", FAIL, str(e))
+
+    # testnet_only allows testnet
+    try:
+        t_testnet = KeeperHubToolkit(testnet_only=True)
+        testnet_tools = {t.name: t for t in t_testnet.get_tools()}
+        # Should NOT be blocked — will reach API and may fail for other reasons
+        r = json.loads(await testnet_tools["keeperhub_transfer_funds"]._arun(
+            network="11155111", to="0x554bbFF68e21e1A4767247586983f98D41c49b78", amount="0.0001"
+        ))
+        # ok=True means it reached the API (guard passed)
+        # ok=False with error != testnet_only means guard passed, API may have rejected for other reason
+        guard_passed = "testnet_only" not in r.get("error", "")
+        record("safety", "testnet_only allows Sepolia (11155111)", PASS if guard_passed else FAIL,
+               "Sepolia transfer not blocked by guard" if guard_passed else r.get("error"))
+    except Exception as e:
+        record("safety", "testnet_only allows Sepolia", FAIL, str(e))
+
+    # workflows=True raises on get_tools()
+    try:
+        t_mcp = KeeperHubToolkit(workflows=True)
+        try:
+            t_mcp.get_tools()
+            record("safety", "workflows=True raises on get_tools()", FAIL,
+                   "Should have raised RuntimeError")
+        except RuntimeError as e:
+            if "aget_tools" in str(e):
+                record("safety", "workflows=True raises on get_tools()", PASS,
+                       "RuntimeError with clear message pointing to aget_tools()")
+            else:
+                record("safety", "workflows=True raises on get_tools()", FAIL, str(e))
+    except Exception as e:
+        record("safety", "workflows=True raises on get_tools()", FAIL, str(e))
+
+    # history=True adds list_executions tool
+    try:
+        import tempfile
+        db_path = tempfile.mktemp(suffix=".db")
+        t_hist = KeeperHubToolkit(history=db_path)
+        hist_names = [t.name for t in t_hist.get_tools()]
+        if "keeperhub_list_executions" in hist_names:
+            record("history", "history=True adds list_executions tool", PASS,
+                   f"Tool present. Total tools: {len(hist_names)}")
+        else:
+            record("history", "history=True adds list_executions tool", FAIL,
+                   f"Missing. Got: {hist_names}")
+    except Exception as e:
+        record("history", "history=True adds list_executions tool", FAIL, str(e))
+
+    # SqliteExecutionStore round-trip
+    try:
+        import tempfile
+        from langchain_keeperhub.store import SqliteExecutionStore, ExecutionRecord
+        db_path = tempfile.mktemp(suffix=".db")
+        store = SqliteExecutionStore(db_path)
+        await store.record(ExecutionRecord(
+            execution_id="test_run_001",
+            kind="transfer",
+            status="pending",
+            network="11155111",
+            amount="0.001",
+            to_address="0xabc",
+        ))
+        await store.update_status("test_run_001", "completed", tx_hash="0xdeadbeef")
+        recs = await store.list()
+        ok = (
+            len(recs) == 1
+            and recs[0].transaction_hash == "0xdeadbeef"
+            and recs[0].status == "completed"
+        )
+        record("history", "SqliteExecutionStore record/update/list", PASS if ok else FAIL,
+               f"Stored 1 record, tx_hash={recs[0].transaction_hash}" if ok else "Round-trip failed")
+    except Exception as e:
+        record("history", "SqliteExecutionStore round-trip", FAIL, str(e))
+
     await client.aclose()
 
     # ─── REPORT ──────────────────────────────────────────────────────────────

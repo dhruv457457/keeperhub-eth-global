@@ -2,17 +2,53 @@
 
 from langchain_keeperhub.client import KeeperHubClient
 from langchain_keeperhub.toolkit import KeeperHubToolkit
+from langchain_keeperhub.store import ExecutionRecord, SqliteExecutionStore
 from langchain_keeperhub.tools import (
-    CheckAndExecuteTool,
-    ContractCallTool,
-    EstimateGasTool,
-    ExecuteWorkflowTool,
+    # Chain & contract
+    ListChainsTool,
     FetchContractABITool,
+    # Web3 execution
+    TransferFundsTool,
+    ContractCallTool,
+    CheckAndExecuteTool,
+    EstimateGasTool,
+    # Workflows
+    ListWorkflowsTool,
+    ExecuteWorkflowTool,
     GenerateWorkflowTool,
     GetExecutionStatusTool,
-    ListChainsTool,
-    ListWorkflowsTool,
-    TransferFundsTool,
+    ListExecutionsTool,
+    # DeFi protocols
+    ListProtocolsTool,
+    ProtocolActionTool,
+    # Payments
+    PayAndRunTool,
+    # Agent identity & wallet
+    RegisterAgentTool,
+    WalletBalanceTool,
+    ProvisionWalletTool,
+    # Notifications
+    NotifyTool,
+    ListIntegrationsTool,
+    # Chainlink
+    ChainlinkCcipTool,
+    ChainlinkPriceFeedTool,
+    # Ajna
+    AjnaTool,
+    # Utility plugins
+    CodeExecuteTool,
+    MathAggregateTool,
+    # Action schema discovery
+    GetActionSchemaTool,
+    SearchActionsTool,
+    # Workflow versioning & migration
+    WorkflowVersionTool,
+    WorkflowMigrateTool,
+    PublishWorkflowTool,
+    # ENS
+    EnsResolveTool,
+    EnsTextRecordTool,
+    EnsLookupTool,
 )
 
 __version__ = "0.1.0"
@@ -22,15 +58,52 @@ __all__ = [
     "KeeperHubToolkit",
     # HTTP client (advanced use)
     "KeeperHubClient",
-    # Individual tools
+    # Execution store
+    "ExecutionRecord",
+    "SqliteExecutionStore",
+    # Chain & contract
     "ListChainsTool",
     "FetchContractABITool",
+    # Web3 execution
     "TransferFundsTool",
     "ContractCallTool",
     "CheckAndExecuteTool",
     "EstimateGasTool",
+    # Workflows
     "ListWorkflowsTool",
     "ExecuteWorkflowTool",
     "GenerateWorkflowTool",
     "GetExecutionStatusTool",
+    "ListExecutionsTool",
+    # DeFi protocols
+    "ListProtocolsTool",
+    "ProtocolActionTool",
+    # Payments
+    "PayAndRunTool",
+    # Agent identity & wallet
+    "RegisterAgentTool",
+    "WalletBalanceTool",
+    "ProvisionWalletTool",
+    # Notifications
+    "NotifyTool",
+    "ListIntegrationsTool",
+    # Chainlink
+    "ChainlinkCcipTool",
+    "ChainlinkPriceFeedTool",
+    # Ajna
+    "AjnaTool",
+    # Utility plugins
+    "CodeExecuteTool",
+    "MathAggregateTool",
+    # Action schema discovery
+    "GetActionSchemaTool",
+    "SearchActionsTool",
+    # Workflow versioning & migration
+    "WorkflowVersionTool",
+    "WorkflowMigrateTool",
+    "PublishWorkflowTool",
+    # ENS
+    "EnsResolveTool",
+    "EnsTextRecordTool",
+    "EnsLookupTool",
 ]
