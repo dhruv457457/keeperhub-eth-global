@@ -1,7 +1,7 @@
 {
-  "name": "@keeperhub/elizaos",
-  "version": "0.1.0",
-  "description": "KeeperHub plugin for ElizaOS — onchain workflow automation for AI agents",
+  "name": "@ethglobal-openagent/elizaos-keeperhub",
+  "version": "0.2.0",
+  "description": "KeeperHub plugin for ElizaOS \u00e2\u20ac\u201d onchain workflow automation for AI agents",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {

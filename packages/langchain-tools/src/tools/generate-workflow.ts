@@ -53,38 +53,47 @@ export function createGenerateWorkflowTool(
       "Optionally set execute=true to immediately run the workflow after generating it.",
     schema: GenerateWorkflowSchema,
     func: async ({ prompt, execute, executionInput, context }) => {
-      if (execute) {
-        const result = await kh
-          .pipeline()
-          .generate(prompt, { context })
-          .withInput(executionInput ?? {})
-          .wait({ timeout: 180_000 });
+      try {
+        if (execute) {
+          const result = await kh
+            .pipeline()
+            .generate(prompt, { context })
+            .withInput(executionInput ?? {})
+            .wait({ timeout: 180_000 });
+
+          return JSON.stringify({
+            ok: true,
+            generated: true,
+            executed: true,
+            executionId: result.executionId ?? null,
+            status: result.status,
+          });
+        }
+
+        // Generate and save only — generateSpec() returns an unsaved spec, then we persist it
+        const generated = await kh.workflows.generateSpec({ prompt, context });
+        const saved = await kh.workflows.create({
+          name: generated.name,
+          description: generated.description,
+          nodes: generated.nodes,
+          edges: generated.edges,
+        });
 
         return JSON.stringify({
+          ok: true,
           generated: true,
-          executed: true,
-          executionId: result.executionId ?? null,
-          status: result.status,
+          executed: false,
+          workflowId: saved.id,
+          name: saved.name,
+          description: saved.description,
+          hint: `To execute, call execute_keeperhub_workflow with workflowId="${saved.id}"`,
+        });
+      } catch (err) {
+        return JSON.stringify({
+          ok: false,
+          error: err instanceof Error ? err.message : "Failed to generate workflow",
         });
       }
-
-      // Generate and save only — generateSpec() returns an unsaved spec, then we persist it
-      const generated = await kh.workflows.generateSpec({ prompt, context });
-      const saved = await kh.workflows.create({
-        name: generated.name,
-        description: generated.description,
-        nodes: generated.nodes,
-        edges: generated.edges,
-      });
-
-      return JSON.stringify({
-        generated: true,
-        executed: false,
-        workflowId: saved.id,
-        name: saved.name,
-        description: saved.description,
-        hint: `To execute, call execute_keeperhub_workflow with workflowId="${saved.id}"`,
-      });
     },
   });
 }

@@ -52,7 +52,7 @@ export function createWalletBalanceTool(kh: KeeperHub): DynamicStructuredTool {
 
         return JSON.stringify({
           ok: true,
-          wallet_address: w["address"],
+          wallet_address: w["walletAddress"] ?? w["address"],
           balances: balances.slice(0, 20),
           payment_readiness: {
             x402_base_usdc: usdcBase

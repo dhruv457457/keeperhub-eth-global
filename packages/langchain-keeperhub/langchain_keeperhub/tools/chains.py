@@ -44,9 +44,9 @@ class ListChainsTool(BaseTool):
                 for c in chains
                 if c.get("isEnabled", True)
             ]
-            return json.dumps(summary)
+            return json.dumps({"ok": True, "chains": summary, "count": len(summary)})
         except Exception as e:
-            return json.dumps({"error": str(e)})
+            return json.dumps({"ok": False, "error": str(e)})
 
     def _run(self) -> str:  # type: ignore[override]
         raise NotImplementedError("Use async version")
@@ -94,7 +94,7 @@ class FetchContractABITool(BaseTool):
                 return json.dumps({"ok": True, "abi": result})
             return json.dumps({"ok": True, "data": result})
         except Exception as e:
-            return json.dumps({"error": str(e)})
+            return json.dumps({"ok": False, "error": str(e)})
 
     def _run(self, **kwargs: object) -> str:  # type: ignore[override]
         raise NotImplementedError("Use async version")

@@ -1,201 +1,109 @@
 /**
- * KeeperHub LangChain → OpenClaw Adapter
+ * KeeperHub LangChain → OpenClaw Plugin
  *
- * Wraps each @keeperhub/langchain tool as a native OpenClaw tool.
- * When OpenClaw calls a tool, this adapter invokes the LangChain tool's
- * underlying function and returns the result formatted for OpenClaw.
+ * Registers all KeeperHub LangChain tools as native OpenClaw agent tools.
+ * Uses the OpenClaw plugin register() API.
  *
  * Flow:
- *   OpenClaw agent → OpenClaw tool → LangChain tool._arun() → KeeperHub API
+ *   OpenClaw agent → registerTool → LangChain tool.invoke() → KeeperHub API
  */
 
-import { KeeperHubToolkit } from "@keeperhub/langchain";
-import type { ToolKey } from "@keeperhub/langchain";
+import { KeeperHubToolkit } from "@ethglobal-openagent/langchain-keeperhub";
 
-export interface OpenClawToolResult {
-  text: string;
-  success: boolean;
-  metadata?: Record<string, unknown>;
-}
+// ─── Config interface matching openclaw.plugin.json schema ───────────────────
 
-export interface OpenClawTool {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-  execute(params: Record<string, unknown>): Promise<OpenClawToolResult>;
-}
-
-export interface KeeperHubOpenClawConfig {
+interface KeeperHubPluginConfig {
   apiKey: string;
   baseUrl?: string;
   testnetOnly?: boolean;
   allowedChainIds?: string[];
-  tools?: ToolKey[];
 }
 
-/**
- * Create OpenClaw-compatible tools from the KeeperHub LangChain SDK.
- *
- * Usage in openclaw.config.json:
- * ```json
- * {
- *   "plugins": {
- *     "keeperhub-langchain": {
- *       "apiKey": "${KEEPERHUB_API_KEY}",
- *       "testnetOnly": true
- *     }
- *   }
- * }
- * ```
- *
- * Or use directly in code:
- * ```typescript
- * import { createKeeperHubOpenClawTools } from "@keeperhub/openclaw-langchain";
- *
- * const tools = createKeeperHubOpenClawTools({
- *   apiKey: process.env.KEEPERHUB_API_KEY!,
- *   testnetOnly: true,
- * });
- * ```
- */
-export function createKeeperHubOpenClawTools(
-  config: KeeperHubOpenClawConfig
-): OpenClawTool[] {
+// ─── OpenClaw Plugin API (minimal types) ─────────────────────────────────────
+
+interface ToolDef {
+  name: string;
+  label: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  execute(toolCallId: string, params: Record<string, unknown>): Promise<{ content: string; details?: unknown }>;
+}
+
+interface PluginApi {
+  registrationMode: "full" | "discovery" | "setup-only" | "cli-metadata";
+  config: KeeperHubPluginConfig;
+  registerTool(tool: ToolDef): void;
+}
+
+// ─── Plugin Entry ─────────────────────────────────────────────────────────────
+
+export function register(api: PluginApi): void {
+  // Debug: log what OpenClaw actually passes
+  console.log("[keeperhub] api keys:", Object.keys(api ?? {}));
+  console.log("[keeperhub] api.config:", JSON.stringify(api?.config));
+  console.log("[keeperhub] env key exists:", !!process.env.KEEPERHUB_API_KEY);
+
+  const cfg = (api as any).config ?? (api as any).pluginConfig ?? (api as any).settings ?? {};
+  const apiKey = cfg.apiKey
+    || (api as any).apiKey
+    || process.env.KEEPERHUB_API_KEY
+    || "";
+  const { baseUrl, testnetOnly, allowedChainIds } = cfg;
+
+  if (!apiKey) throw new Error("KeeperHub API key required. Set KEEPERHUB_API_KEY env var.");
+
   const toolkit = new KeeperHubToolkit({
-    apiKey: config.apiKey,
-    baseUrl: config.baseUrl,
-    testnetOnly: config.testnetOnly,
-    allowedChainIds: config.allowedChainIds
-      ? new Set(config.allowedChainIds)
-      : undefined,
-    tools: config.tools,
+    apiKey,
+    baseUrl,
+    testnetOnly: testnetOnly ?? false,
+    allowedChainIds: allowedChainIds ? new Set(allowedChainIds) : undefined,
   });
 
-  const langchainTools = toolkit.getTools();
+  const tools = toolkit.getTools();
 
-  return langchainTools.map((lcTool) => {
-    // Build OpenClaw parameter schema from LangChain tool schema
-    const parameters = buildParameterSchema(lcTool);
-
-    return {
-      name: lcTool.name,           // e.g. "keeperhub_transfer_funds"
+  for (const lcTool of tools) {
+    api.registerTool({
+      name: lcTool.name,
+      label: lcTool.name.replace(/keeperhub_/g, "").replace(/_/g, " "),
       description: lcTool.description,
 
-      parameters,
+      // Simple open parameters — OpenClaw passes whatever the LLM decides
+      parameters: {
+        type: "object",
+        additionalProperties: true,
+        description: "Parameters for this KeeperHub tool",
+      },
 
-      async execute(
-        params: Record<string, unknown>
-      ): Promise<OpenClawToolResult> {
+      async execute(_toolCallId: string, params: Record<string, unknown>) {
         try {
-          // Call the LangChain tool — returns a JSON string
           const raw = await lcTool.invoke(params);
           const parsed = tryParseJson(raw);
 
           if (parsed && typeof parsed === "object") {
-            const ok = (parsed as Record<string, unknown>).ok !== false;
-            const summary =
-              (parsed as Record<string, unknown>).summary as string |
-              (parsed as Record<string, unknown>).error as string |
-              raw;
-
+            const p = parsed as Record<string, unknown>;
+            const summary = (p.summary as string) || (p.error as string) || String(raw);
             return {
-              text: String(summary || raw),
-              success: ok,
-              metadata: parsed as Record<string, unknown>,
+              content: summary,
+              details: p,
             };
           }
 
-          return { text: String(raw), success: true };
+          return { content: String(raw) };
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          return {
-            text: `KeeperHub error: ${message}`,
-            success: false,
-            metadata: { error: message },
-          };
+          return { content: `KeeperHub error: ${message}` };
         }
       },
-    };
-  });
+    });
+  }
 }
 
-/**
- * OpenClaw plugin entry point.
- * Called by the OpenClaw runtime when loading this plugin.
- */
-export function createPlugin(config: KeeperHubOpenClawConfig) {
-  const tools = createKeeperHubOpenClawTools(config);
-  return { tools };
-}
+// Legacy alias
+export { register as activate };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function tryParseJson(raw: unknown): unknown {
   if (typeof raw !== "string") return raw;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Build a simple OpenClaw parameter schema from a LangChain tool.
- * Falls back to a generic { input: string } if schema is unavailable.
- */
-function buildParameterSchema(
-  tool: ReturnType<KeeperHubToolkit["getTools"]>[number]
-): Record<string, unknown> {
-  try {
-    // LangChain StructuredTool has schema property
-    const schema = (tool as unknown as { schema?: { shape?: unknown } }).schema;
-    if (schema && typeof schema === "object") {
-      return {
-        type: "object",
-        properties: extractProperties(schema),
-        additionalProperties: false,
-      };
-    }
-  } catch {
-    // ignore
-  }
-
-  // Generic fallback
-  return {
-    type: "object",
-    properties: {
-      input: {
-        type: "string",
-        description: `Input for ${tool.name}`,
-      },
-    },
-  };
-}
-
-function extractProperties(schema: unknown): Record<string, unknown> {
-  if (!schema || typeof schema !== "object") return {};
-  const shape = (schema as Record<string, unknown>).shape;
-  if (!shape || typeof shape !== "object") return {};
-
-  const props: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(shape as Record<string, unknown>)) {
-    props[key] = zodToJsonSchema(val);
-  }
-  return props;
-}
-
-function zodToJsonSchema(zodField: unknown): Record<string, unknown> {
-  if (!zodField || typeof zodField !== "object") return { type: "string" };
-  const f = zodField as Record<string, unknown>;
-  const typeName = (f._def as Record<string, unknown>)?.typeName as string;
-
-  switch (typeName) {
-    case "ZodString": return { type: "string" };
-    case "ZodNumber": return { type: "number" };
-    case "ZodBoolean": return { type: "boolean" };
-    case "ZodOptional": return { ...zodToJsonSchema((f._def as Record<string, unknown>)?.innerType), nullable: true };
-    case "ZodArray": return { type: "array", items: zodToJsonSchema((f._def as Record<string, unknown>)?.type) };
-    case "ZodRecord": return { type: "object", additionalProperties: true };
-    default: return { type: "string" };
-  }
+  try { return JSON.parse(raw); } catch { return null; }
 }

@@ -30,9 +30,9 @@ export function createListChainsTool(kh: KeeperHub): DynamicStructuredTool {
             isTestnet: (c as Record<string, unknown>)["isTestnet"] ?? false,
             explorerUrl: (c as Record<string, unknown>)["explorerUrl"],
           }));
-        return JSON.stringify(summary);
+        return JSON.stringify({ ok: true, chains: summary, count: summary.length });
       } catch (err) {
-        return JSON.stringify({ error: String(err) });
+        return JSON.stringify({ ok: false, error: String(err) });
       }
     },
   });

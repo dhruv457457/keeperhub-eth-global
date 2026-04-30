@@ -38,6 +38,7 @@ export function createCheckExecutionTool(kh: KeeperHub): DynamicStructuredTool {
         ]);
 
         return JSON.stringify({
+          ok: true,
           executionId,
           status: status.status,
           progress: status.progress,
@@ -59,10 +60,12 @@ export function createCheckExecutionTool(kh: KeeperHub): DynamicStructuredTool {
           err instanceof KeeperHubNotFoundError
         ) {
           return JSON.stringify({
+            ok: false,
             error: "Execution not found or not accessible with your API key.",
           });
         }
         return JSON.stringify({
+          ok: false,
           error:
             err instanceof Error
               ? err.message

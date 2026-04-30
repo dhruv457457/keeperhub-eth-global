@@ -23,8 +23,6 @@ overrides:
   '@hono/node-server': '>=1.19.10'
   file-type: '>=21.3.1'
   yauzl: '>=3.2.1'
-  '@elizaos/core>zod': ^3.25.76
-  ai>zod: ^3.25.76
 
 importers:
 
@@ -324,16 +322,16 @@ importers:
     dependencies:
       '@elizaos/core':
         specifier: ^0.1.9
-        version: 0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+        version: 0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       '@keeperhub/elizaos':
         specifier: file:../packages/elizaos-plugin
-        version: file:packages/elizaos-plugin(@elizaos/core@0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
+        version: '@ethglobal-openagent/elizaos-keeperhub@file:packages/elizaos-plugin(@elizaos/core@0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)'
       '@keeperhub/langchain':
         specifier: file:../packages/langchain-tools
-        version: file:packages/langchain-tools(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
+        version: '@ethglobal-openagent/langchain-keeperhub@file:packages/langchain-tools(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)'
       '@langchain/core':
         specifier: ^1.0.0
-        version: 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+        version: 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       keeperhub-sdk:
         specifier: file:../packages/sdk
         version: link:../packages/sdk
@@ -371,7 +369,7 @@ importers:
     devDependencies:
       '@elizaos/core':
         specifier: ^0.1.9
-        version: 0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+        version: 0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       '@types/node':
         specifier: ^24
         version: 24.12.2
@@ -402,6 +400,30 @@ importers:
         version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.19))(jiti@2.6.1)(postcss@8.5.12)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
       typescript:
         specifier: ^5
+        version: 5.9.3
+
+  packages/openclaw-adapter-elizaos:
+    devDependencies:
+      '@ethglobal-openagent/langchain-keeperhub':
+        specifier: '>=0.1.0'
+        version: 0.2.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.19))(jiti@2.6.1)(postcss@8.5.12)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
+  packages/openclaw-adapter-langchain:
+    devDependencies:
+      '@ethglobal-openagent/langchain-keeperhub':
+        specifier: '>=0.1.0'
+        version: 0.2.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.19))(jiti@2.6.1)(postcss@8.5.12)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.0.0
         version: 5.9.3
 
   packages/sdk:
@@ -2093,6 +2115,21 @@ packages:
   '@ethersproject/web@5.8.0':
     resolution: {integrity: sha512-j7+Ksi/9KfGviws6Qtf9Q7KCqRhpwrYKQPs+JBA/rKVFF/yaWLHJEH3zfVP2plVu+eys0d2DlFmhoQJayFewcw==}
 
+  '@ethglobal-openagent/elizaos-keeperhub@file:packages/elizaos-plugin':
+    resolution: {directory: packages/elizaos-plugin, type: directory}
+    peerDependencies:
+      '@elizaos/core': '>=0.1.0'
+
+  '@ethglobal-openagent/langchain-keeperhub@0.2.0':
+    resolution: {integrity: sha512-IKtsohrWL8n4R8Hn54Fq4y1pgfxsS0ZjtMO7xXC9Oi2Y+N3GgkqXz619YewM/nEfRksWXwLGTFL7Pup0xvUGKQ==}
+    peerDependencies:
+      '@langchain/core': '>=0.2.0 || >=1.0.0'
+
+  '@ethglobal-openagent/langchain-keeperhub@file:packages/langchain-tools':
+    resolution: {directory: packages/langchain-tools, type: directory}
+    peerDependencies:
+      '@langchain/core': '>=0.2.0 || >=1.0.0'
+
   '@exodus/bytes@1.15.0':
     resolution: {integrity: sha512-UY0nlA+feH81UGSHv92sLEPLCeZFjXOuHhrIo0HQydScuQc8s0A7kL/UdgwgDq8g8ilksmuoF35YVTNphV2aBQ==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
@@ -2551,16 +2588,6 @@ packages:
     engines: {node: '>= 10.16.0'}
     peerDependencies:
       jsep: ^0.4.0||^1.0.0
-
-  '@keeperhub/elizaos@file:packages/elizaos-plugin':
-    resolution: {directory: packages/elizaos-plugin, type: directory}
-    peerDependencies:
-      '@elizaos/core': '>=0.1.0'
-
-  '@keeperhub/langchain@file:packages/langchain-tools':
-    resolution: {directory: packages/langchain-tools, type: directory}
-    peerDependencies:
-      '@langchain/core': '>=0.2.0 || >=1.0.0'
 
   '@kubernetes/client-node@1.4.0':
     resolution: {integrity: sha512-Zge3YvF7DJi264dU1b3wb/GmzR99JhUpqTvp+VGHfwZT+g7EOOYNScDJNZwXy9cszyIGPIs0VHr+kk8e95qqrA==}
@@ -6333,7 +6360,7 @@ packages:
       react: ^18 || ^19 || ^19.0.0-rc
       sswr: ^2.1.0
       svelte: ^3.0.0 || ^4.0.0 || ^5.0.0
-      zod: ^3.25.76
+      zod: ^3.0.0
     peerDependenciesMeta:
       openai:
         optional: true
@@ -6350,7 +6377,7 @@ packages:
     resolution: {integrity: sha512-lqqujbQc5s2ASSz17qiSk4QNA714A8oXC3zkrBynMOgwybjWSUun/QBAXcdbHSnznfF+ZffShuJ0d5lme89htg==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.76
+      zod: ^3.25.76 || ^4.1.8
 
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
@@ -11281,6 +11308,9 @@ packages:
     peerDependencies:
       zod: ^3.25 || ^4
 
+  zod@3.23.8:
+    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -11313,20 +11343,20 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@ai-sdk/amazon-bedrock@1.1.0(zod@3.25.76)':
+  '@ai-sdk/amazon-bedrock@1.1.0(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 1.0.4
-      '@ai-sdk/provider-utils': 2.1.0(zod@3.25.76)
+      '@ai-sdk/provider-utils': 2.1.0(zod@3.23.8)
       '@aws-sdk/client-bedrock-runtime': 3.1038.0
-      zod: 3.25.76
+      zod: 3.23.8
     transitivePeerDependencies:
       - aws-crt
 
-  '@ai-sdk/anthropic@0.0.56(zod@3.25.76)':
+  '@ai-sdk/anthropic@0.0.56(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      zod: 3.23.8
 
   '@ai-sdk/anthropic@2.0.74(zod@4.3.6)':
     dependencies:
@@ -11341,43 +11371,43 @@ snapshots:
       '@vercel/oidc': 3.1.0
       zod: 4.3.6
 
-  '@ai-sdk/google-vertex@0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76)':
+  '@ai-sdk/google-vertex@0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      '@google-cloud/vertexai': 1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@google-cloud/vertexai': 1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      zod: 3.23.8
 
-  '@ai-sdk/google-vertex@0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76)':
+  '@ai-sdk/google-vertex@0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
       '@google-cloud/vertexai': 1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-      zod: 3.25.76
+      zod: 3.23.8
 
-  '@ai-sdk/google@0.0.55(zod@3.25.76)':
+  '@ai-sdk/google@0.0.55(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      zod: 3.23.8
 
-  '@ai-sdk/groq@0.0.3(zod@3.25.76)':
+  '@ai-sdk/groq@0.0.3(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      zod: 3.23.8
 
-  '@ai-sdk/mistral@1.0.9(zod@3.25.76)':
+  '@ai-sdk/mistral@1.0.9(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 1.0.4
-      '@ai-sdk/provider-utils': 2.0.8(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 2.0.8(zod@3.23.8)
+      zod: 3.23.8
 
-  '@ai-sdk/openai@1.0.5(zod@3.25.76)':
+  '@ai-sdk/openai@1.0.5(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 1.0.1
-      '@ai-sdk/provider-utils': 2.0.2(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 2.0.2(zod@3.23.8)
+      zod: 3.23.8
 
   '@ai-sdk/openai@2.0.102(zod@4.3.6)':
     dependencies:
@@ -11385,50 +11415,50 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.23(zod@4.3.6)
       zod: 4.3.6
 
-  '@ai-sdk/provider-utils@1.0.20(zod@3.25.76)':
+  '@ai-sdk/provider-utils@1.0.20(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.24
       eventsource-parser: 1.1.2
       nanoid: 3.3.6
       secure-json-parse: 2.7.0
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
 
-  '@ai-sdk/provider-utils@1.0.22(zod@3.25.76)':
+  '@ai-sdk/provider-utils@1.0.22(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
       eventsource-parser: 1.1.2
       nanoid: 3.3.11
       secure-json-parse: 2.7.0
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
 
-  '@ai-sdk/provider-utils@2.0.2(zod@3.25.76)':
+  '@ai-sdk/provider-utils@2.0.2(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 1.0.1
       eventsource-parser: 3.0.6
       nanoid: 3.3.11
       secure-json-parse: 2.7.0
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
 
-  '@ai-sdk/provider-utils@2.0.8(zod@3.25.76)':
+  '@ai-sdk/provider-utils@2.0.8(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 1.0.4
       eventsource-parser: 3.0.6
       nanoid: 3.3.11
       secure-json-parse: 2.7.0
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
 
-  '@ai-sdk/provider-utils@2.1.0(zod@3.25.76)':
+  '@ai-sdk/provider-utils@2.1.0(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 1.0.4
       eventsource-parser: 3.0.6
       nanoid: 3.3.11
       secure-json-parse: 2.7.0
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
 
   '@ai-sdk/provider-utils@3.0.23(zod@4.3.6)':
     dependencies:
@@ -11457,47 +11487,47 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@0.0.70(react@19.2.4)(zod@3.25.76)':
+  '@ai-sdk/react@0.0.70(react@19.2.4)(zod@3.23.8)':
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      '@ai-sdk/ui-utils': 0.0.50(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.50(zod@3.23.8)
       swr: 2.4.1(react@19.2.4)
       throttleit: 2.1.0
     optionalDependencies:
       react: 19.2.4
-      zod: 3.25.76
+      zod: 3.23.8
 
-  '@ai-sdk/solid@0.0.54(zod@3.25.76)':
+  '@ai-sdk/solid@0.0.54(zod@3.23.8)':
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      '@ai-sdk/ui-utils': 0.0.50(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.50(zod@3.23.8)
     transitivePeerDependencies:
       - zod
 
-  '@ai-sdk/svelte@0.0.57(svelte@5.55.5)(zod@3.25.76)':
+  '@ai-sdk/svelte@0.0.57(svelte@5.55.5)(zod@3.23.8)':
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      '@ai-sdk/ui-utils': 0.0.50(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.50(zod@3.23.8)
       sswr: 2.2.0(svelte@5.55.5)
     optionalDependencies:
       svelte: 5.55.5
     transitivePeerDependencies:
       - zod
 
-  '@ai-sdk/ui-utils@0.0.50(zod@3.25.76)':
+  '@ai-sdk/ui-utils@0.0.50(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
       json-schema: 0.4.0
       secure-json-parse: 2.7.0
-      zod-to-json-schema: 3.25.1(zod@3.25.76)
+      zod-to-json-schema: 3.25.1(zod@3.23.8)
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
 
-  '@ai-sdk/vue@0.0.59(vue@3.5.33(typescript@5.9.3))(zod@3.25.76)':
+  '@ai-sdk/vue@0.0.59(vue@3.5.33(typescript@5.9.3))(zod@3.23.8)':
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      '@ai-sdk/ui-utils': 0.0.50(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.50(zod@3.23.8)
       swrv: 1.2.0(vue@3.5.33(typescript@5.9.3))
     optionalDependencies:
       vue: 3.5.33(typescript@5.9.3)
@@ -12664,20 +12694,20 @@ snapshots:
   '@electric-sql/pglite@0.3.15':
     optional: true
 
-  '@elizaos/core@0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))':
+  '@elizaos/core@0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))':
     dependencies:
-      '@ai-sdk/amazon-bedrock': 1.1.0(zod@3.25.76)
-      '@ai-sdk/anthropic': 0.0.56(zod@3.25.76)
-      '@ai-sdk/google': 0.0.55(zod@3.25.76)
-      '@ai-sdk/google-vertex': 0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76)
-      '@ai-sdk/groq': 0.0.3(zod@3.25.76)
-      '@ai-sdk/mistral': 1.0.9(zod@3.25.76)
-      '@ai-sdk/openai': 1.0.5(zod@3.25.76)
+      '@ai-sdk/amazon-bedrock': 1.1.0(zod@3.23.8)
+      '@ai-sdk/anthropic': 0.0.56(zod@3.23.8)
+      '@ai-sdk/google': 0.0.55(zod@3.23.8)
+      '@ai-sdk/google-vertex': 0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.23.8)
+      '@ai-sdk/groq': 0.0.3(zod@3.23.8)
+      '@ai-sdk/mistral': 1.0.9(zod@3.23.8)
+      '@ai-sdk/openai': 1.0.5(zod@3.23.8)
       '@fal-ai/client': 1.2.0
       '@tavily/core': 0.0.2
       '@types/uuid': 10.0.0
-      ai: 3.4.33(openai@4.73.0(zod@3.25.76))(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(zod@3.25.76)
-      anthropic-vertex-ai: 1.0.2(zod@3.25.76)
+      ai: 3.4.33(openai@4.73.0(zod@3.23.8))(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(zod@3.23.8)
+      anthropic-vertex-ai: 1.0.2(zod@3.23.8)
       dotenv: 16.4.5
       fastembed: 1.14.1
       fastestsmallesttextencoderdecoder: 1.0.22
@@ -12686,16 +12716,16 @@ snapshots:
       handlebars: 4.7.9
       js-sha1: 0.7.0
       js-tiktoken: 1.0.15
-      langchain: 0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      ollama-ai-provider: 0.16.1(zod@3.25.76)
-      openai: 4.73.0(zod@3.25.76)
+      langchain: 0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      ollama-ai-provider: 0.16.1(zod@3.23.8)
+      openai: 4.73.0(zod@3.23.8)
       pino: 9.14.0
       pino-pretty: 13.1.3
       tinyld: 1.3.4
       together-ai: 0.7.0
       unique-names-generator: 4.7.1
       uuid: 11.0.3
-      zod: 3.25.76
+      zod: 3.23.8
     transitivePeerDependencies:
       - '@google-cloud/vertexai'
       - '@langchain/anthropic'
@@ -12724,18 +12754,18 @@ snapshots:
 
   '@elizaos/core@0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))':
     dependencies:
-      '@ai-sdk/amazon-bedrock': 1.1.0(zod@3.25.76)
-      '@ai-sdk/anthropic': 0.0.56(zod@3.25.76)
-      '@ai-sdk/google': 0.0.55(zod@3.25.76)
-      '@ai-sdk/google-vertex': 0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76)
-      '@ai-sdk/groq': 0.0.3(zod@3.25.76)
-      '@ai-sdk/mistral': 1.0.9(zod@3.25.76)
-      '@ai-sdk/openai': 1.0.5(zod@3.25.76)
+      '@ai-sdk/amazon-bedrock': 1.1.0(zod@3.23.8)
+      '@ai-sdk/anthropic': 0.0.56(zod@3.23.8)
+      '@ai-sdk/google': 0.0.55(zod@3.23.8)
+      '@ai-sdk/google-vertex': 0.0.43(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.23.8)
+      '@ai-sdk/groq': 0.0.3(zod@3.23.8)
+      '@ai-sdk/mistral': 1.0.9(zod@3.23.8)
+      '@ai-sdk/openai': 1.0.5(zod@3.23.8)
       '@fal-ai/client': 1.2.0
       '@tavily/core': 0.0.2
       '@types/uuid': 10.0.0
-      ai: 3.4.33(openai@4.73.0(zod@3.25.76))(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(zod@3.25.76)
-      anthropic-vertex-ai: 1.0.2(zod@3.25.76)
+      ai: 3.4.33(openai@4.73.0(zod@3.23.8))(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(zod@3.23.8)
+      anthropic-vertex-ai: 1.0.2(zod@3.23.8)
       dotenv: 16.4.5
       fastembed: 1.14.1
       fastestsmallesttextencoderdecoder: 1.0.22
@@ -12744,16 +12774,16 @@ snapshots:
       handlebars: 4.7.9
       js-sha1: 0.7.0
       js-tiktoken: 1.0.15
-      langchain: 0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      ollama-ai-provider: 0.16.1(zod@3.25.76)
-      openai: 4.73.0(zod@3.25.76)
+      langchain: 0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      ollama-ai-provider: 0.16.1(zod@3.23.8)
+      openai: 4.73.0(zod@3.23.8)
       pino: 9.14.0
       pino-pretty: 13.1.3
       tinyld: 1.3.4
       together-ai: 0.7.0
       unique-names-generator: 4.7.1
       uuid: 11.0.3
-      zod: 3.25.76
+      zod: 3.23.8
     transitivePeerDependencies:
       - '@google-cloud/vertexai'
       - '@langchain/anthropic'
@@ -13319,6 +13349,32 @@ snapshots:
       '@ethersproject/properties': 5.8.0
       '@ethersproject/strings': 5.8.0
 
+  '@ethglobal-openagent/elizaos-keeperhub@file:packages/elizaos-plugin(@elizaos/core@0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@elizaos/core': 0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      keeperhub-sdk: file:packages/sdk(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
+    transitivePeerDependencies:
+      - '@tanstack/react-query'
+      - react
+
+  '@ethglobal-openagent/langchain-keeperhub@0.2.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      keeperhub-sdk: file:packages/sdk(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@tanstack/react-query'
+      - react
+
+  '@ethglobal-openagent/langchain-keeperhub@file:packages/langchain-tools(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      keeperhub-sdk: file:packages/sdk(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@tanstack/react-query'
+      - react
+
   '@exodus/bytes@1.15.0(@noble/hashes@2.0.1)':
     optionalDependencies:
       '@noble/hashes': 2.0.1
@@ -13411,9 +13467,9 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
+  '@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
     dependencies:
-      '@google/genai': 1.50.1(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@google/genai': 1.50.1(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       google-auth-library: 9.15.1
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
@@ -13433,14 +13489,14 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@google/genai@1.50.1(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
+  '@google/genai@1.50.1(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8))(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
     dependencies:
       google-auth-library: 10.6.2
       p-retry: 4.6.2
       protobufjs: 7.5.6
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -13764,23 +13820,6 @@ snapshots:
     dependencies:
       jsep: 1.4.0
 
-  '@keeperhub/elizaos@file:packages/elizaos-plugin(@elizaos/core@0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@elizaos/core': 0.1.9(@google-cloud/vertexai@1.12.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      keeperhub-sdk: file:packages/sdk(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
-    transitivePeerDependencies:
-      - '@tanstack/react-query'
-      - react
-
-  '@keeperhub/langchain@file:packages/langchain-tools(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      keeperhub-sdk: file:packages/sdk(@tanstack/react-query@5.100.5(react@19.2.4))(react@19.2.4)
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@tanstack/react-query'
-      - react
-
   '@kubernetes/client-node@1.4.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
     dependencies:
       '@types/js-yaml': 4.0.9
@@ -13846,7 +13885,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))':
+  '@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@standard-schema/spec': 1.1.0
@@ -13854,7 +13893,7 @@ snapshots:
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.5.25(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      langsmith: 0.5.25(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       mustache: 4.2.0
       p-queue: 6.6.2
       zod: 4.3.6
@@ -13876,9 +13915,9 @@ snapshots:
       - encoding
       - ws
 
-  '@langchain/openai@0.3.17(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))':
+  '@langchain/openai@0.3.17(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))':
     dependencies:
-      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       js-tiktoken: 1.0.15
       openai: 4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76)
       zod: 3.25.76
@@ -13892,9 +13931,9 @@ snapshots:
       '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       js-tiktoken: 1.0.15
 
-  '@langchain/textsplitters@0.1.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))':
+  '@langchain/textsplitters@0.1.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))':
     dependencies:
-      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       js-tiktoken: 1.0.15
 
   '@linear/sdk@63.4.0':
@@ -13917,7 +13956,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76)':
+  '@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.23.8)':
     dependencies:
       '@hono/node-server': 1.19.13(hono@4.12.12)
       ajv: 8.18.0
@@ -13934,8 +13973,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.1(zod@3.25.76)
+      zod: 3.23.8
+      zod-to-json-schema: 3.25.1(zod@3.23.8)
     optionalDependencies:
       '@cfworker/json-schema': 4.1.1
     transitivePeerDependencies:
@@ -18654,27 +18693,27 @@ snapshots:
     dependencies:
       humanize-ms: 1.2.1
 
-  ai@3.4.33(openai@4.73.0(zod@3.25.76))(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(zod@3.25.76):
+  ai@3.4.33(openai@4.73.0(zod@3.23.8))(react@19.2.4)(sswr@2.2.0(svelte@5.55.5))(svelte@5.55.5)(vue@3.5.33(typescript@5.9.3))(zod@3.23.8):
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
-      '@ai-sdk/react': 0.0.70(react@19.2.4)(zod@3.25.76)
-      '@ai-sdk/solid': 0.0.54(zod@3.25.76)
-      '@ai-sdk/svelte': 0.0.57(svelte@5.55.5)(zod@3.25.76)
-      '@ai-sdk/ui-utils': 0.0.50(zod@3.25.76)
-      '@ai-sdk/vue': 0.0.59(vue@3.5.33(typescript@5.9.3))(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
+      '@ai-sdk/react': 0.0.70(react@19.2.4)(zod@3.23.8)
+      '@ai-sdk/solid': 0.0.54(zod@3.23.8)
+      '@ai-sdk/svelte': 0.0.57(svelte@5.55.5)(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.50(zod@3.23.8)
+      '@ai-sdk/vue': 0.0.59(vue@3.5.33(typescript@5.9.3))(zod@3.23.8)
       '@opentelemetry/api': 1.9.0
       eventsource-parser: 1.1.2
       json-schema: 0.4.0
       jsondiffpatch: 0.6.0
       secure-json-parse: 2.7.0
-      zod-to-json-schema: 3.25.1(zod@3.25.76)
+      zod-to-json-schema: 3.25.1(zod@3.23.8)
     optionalDependencies:
-      openai: 4.73.0(zod@3.25.76)
+      openai: 4.73.0(zod@3.23.8)
       react: 19.2.4
       sswr: 2.2.0(svelte@5.55.5)
       svelte: 5.55.5
-      zod: 3.25.76
+      zod: 3.23.8
     transitivePeerDependencies:
       - solid-js
       - vue
@@ -18733,12 +18772,12 @@ snapshots:
 
   ansis@3.17.0: {}
 
-  anthropic-vertex-ai@1.0.2(zod@3.25.76):
+  anthropic-vertex-ai@1.0.2(zod@3.23.8):
     dependencies:
       '@ai-sdk/provider': 0.0.24
-      '@ai-sdk/provider-utils': 1.0.20(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.20(zod@3.23.8)
       google-auth-library: 9.15.1
-      zod: 3.25.76
+      zod: 3.23.8
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -20949,7 +20988,7 @@ snapshots:
 
   kysely@0.28.14: {}
 
-  langchain@0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
+  langchain@0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
     dependencies:
       '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
       '@langchain/openai': 0.3.17(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
@@ -20957,7 +20996,7 @@ snapshots:
       js-tiktoken: 1.0.15
       js-yaml: 4.1.1
       jsonpointer: 5.0.1
-      langsmith: 0.2.15(openai@4.73.0(zod@3.25.76))
+      langsmith: 0.2.15(openai@4.73.0(zod@3.23.8))
       openapi-types: 12.1.3
       p-retry: 4.6.2
       uuid: 10.0.0
@@ -20972,15 +21011,15 @@ snapshots:
       - openai
       - ws
 
-  langchain@0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
+  langchain@0.3.6(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(axios@1.15.0)(handlebars@4.7.9)(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
     dependencies:
-      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      '@langchain/openai': 0.3.17(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      '@langchain/textsplitters': 0.1.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))
+      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      '@langchain/openai': 0.3.17(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      '@langchain/textsplitters': 0.1.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)))
       js-tiktoken: 1.0.15
       js-yaml: 4.1.1
       jsonpointer: 5.0.1
-      langsmith: 0.2.15(openai@4.73.0(zod@3.25.76))
+      langsmith: 0.2.15(openai@4.73.0(zod@3.23.8))
       openapi-types: 12.1.3
       p-retry: 4.6.2
       uuid: 10.0.0
@@ -20995,7 +21034,7 @@ snapshots:
       - openai
       - ws
 
-  langsmith@0.2.15(openai@4.73.0(zod@3.25.76)):
+  langsmith@0.2.15(openai@4.73.0(zod@3.23.8)):
     dependencies:
       '@types/uuid': 10.0.0
       commander: 10.0.1
@@ -21004,7 +21043,7 @@ snapshots:
       semver: 7.7.4
       uuid: 10.0.0
     optionalDependencies:
-      openai: 4.73.0(zod@3.25.76)
+      openai: 4.73.0(zod@3.23.8)
 
   langsmith@0.5.25(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
     dependencies:
@@ -21024,13 +21063,13 @@ snapshots:
       openai: 4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@4.3.6)
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
 
-  langsmith@0.5.25(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.25.76))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
+  langsmith@0.5.25(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.6.1(@opentelemetry/api@1.9.1))(openai@4.73.0(zod@3.23.8))(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
     dependencies:
       p-queue: 6.6.2
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/sdk-trace-base': 2.6.1(@opentelemetry/api@1.9.1)
-      openai: 4.73.0(zod@3.25.76)
+      openai: 4.73.0(zod@3.23.8)
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
 
   libphonenumber-js@1.12.40: {}
@@ -21479,13 +21518,13 @@ snapshots:
 
   ohash@2.0.11: {}
 
-  ollama-ai-provider@0.16.1(zod@3.25.76):
+  ollama-ai-provider@0.16.1(zod@3.23.8):
     dependencies:
       '@ai-sdk/provider': 0.0.26
-      '@ai-sdk/provider-utils': 1.0.22(zod@3.25.76)
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
       partial-json: 0.1.7
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
 
   on-exit-leak-free@2.1.2: {}
 
@@ -21555,7 +21594,7 @@ snapshots:
       - encoding
     optional: true
 
-  openai@4.73.0(zod@3.25.76):
+  openai@4.73.0(zod@3.23.8):
     dependencies:
       '@types/node': 18.19.130
       '@types/node-fetch': 2.6.13
@@ -21565,7 +21604,7 @@ snapshots:
       formdata-node: 4.4.1
       node-fetch: 2.7.0
     optionalDependencies:
-      zod: 3.25.76
+      zod: 3.23.8
     transitivePeerDependencies:
       - encoding
 
@@ -23718,6 +23757,10 @@ snapshots:
 
   zimmerframe@1.1.4: {}
 
+  zod-to-json-schema@3.25.1(zod@3.23.8):
+    dependencies:
+      zod: 3.23.8
+
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
       zod: 3.25.76
@@ -23725,6 +23768,8 @@ snapshots:
   zod-to-json-schema@3.25.1(zod@4.3.6):
     dependencies:
       zod: 4.3.6
+
+  zod@3.23.8: {}
 
   zod@3.25.76: {}
 

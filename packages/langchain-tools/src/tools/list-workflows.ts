@@ -21,20 +21,20 @@ export function createListWorkflowsTool(kh: KeeperHub): DynamicStructuredTool {
     func: async ({ projectId, tagId }) => {
       try {
         const workflows = await kh.workflows.list({ projectId, tagId });
-        return JSON.stringify(
-          workflows.map((wf) => ({
-            id: wf.id,
-            // Sanitize before injecting into LLM context — workflow names/descriptions
-            // are user-controlled and could contain prompt injection attempts
-            name: sanitize(wf.name),
-            description: wf.description ? sanitize(wf.description) : undefined,
-            visibility: wf.visibility,
-            updatedAt: wf.updatedAt,
-          }))
-        );
+        const items = workflows.map((wf) => ({
+          id: wf.id,
+          // Sanitize before injecting into LLM context — workflow names/descriptions
+          // are user-controlled and could contain prompt injection attempts
+          name: sanitize(wf.name),
+          description: wf.description ? sanitize(wf.description) : undefined,
+          visibility: wf.visibility,
+          updatedAt: wf.updatedAt,
+        }));
+        return JSON.stringify({ ok: true, workflows: items, count: items.length });
       } catch (err) {
         // LangChain tools must return a string — never throw
         return JSON.stringify({
+          ok: false,
           error:
             err instanceof Error ? err.message : "Failed to list workflows",
         });

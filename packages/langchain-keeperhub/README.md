@@ -1,187 +1,253 @@
-# langchain-keeperhub
+# keeperhub-langchain
 
-[![PyPI](https://img.shields.io/pypi/v/langchain-keeperhub)](https://pypi.org/project/langchain-keeperhub/)
-[![Python](https://img.shields.io/pypi/pyversions/langchain-keeperhub)](https://pypi.org/project/langchain-keeperhub/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/keeperhub-langchain)](https://pypi.org/project/keeperhub-langchain/)
+[![Python](https://img.shields.io/pypi/pyversions/keeperhub-langchain)](https://pypi.org/project/keeperhub-langchain/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-24%20passing-brightgreen)](https://github.com/dhruv457457/keeperhub-eth-global)
 
-**LangChain toolkit for [KeeperHub](https://keeperhub.com)** — reliable onchain execution, DeFi automation, and AI workflow generation for any LangChain or LangGraph agent.
+**The most complete LangChain toolkit for KeeperHub** — 31 tools covering DeFi protocols, blockchain execution, workflow automation, ENS resolution, x402/MPP payments, ERC-8004 agent identity, and more.
 
-## Why langchain-keeperhub?
+Built for the **ETHGlobal OpenAgents Hackathon**. Tested against real KeeperHub API on Base mainnet.
 
-| Feature | This package | Other Web3 toolkits |
-|---------|-------------|---------------------|
-| Tools | **10** (chains + ABI + transfer + contract + check-execute + gas + 4× workflows) | 4–6 |
-| Never-throws pattern | ✅ `ok/summary/is_retryable` on every tool | ❌ raises on error |
-| Prompt injection protection | ✅ sanitized workflow metadata | ❌ raw injection |
-| Execution polling | ✅ built-in (2 min timeout) | ❌ you poll manually |
-| System prompt builder | ✅ live workflow list | ❌ static |
+---
+
+## Why keeperhub-langchain?
+
+| Feature | This package | Others |
+|---------|-------------|--------|
+| Tools | **31** (DeFi + Web3 + Workflows + ENS + Payments + Identity) | 4–8 |
+| DeFi protocols | **396 actions** (Aave, Uniswap, Lido, Compound, Morpho, Yearn, Curve, CowSwap...) | ❌ |
+| Safety guardrails | ✅ `testnet_only`, `allowed_chain_ids` | ❌ |
+| Execution history | ✅ SQLite audit trail, receipts, dedup | ❌ |
+| MCP bridge | ✅ optional — adds KH's 20 official MCP tools | ❌ |
+| ENS resolution | ✅ forward + reverse + text records | ❌ |
+| x402/MPP payments | ✅ agent-autonomous paid workflow execution | ❌ |
+| ERC-8004 identity | ✅ on-chain agent registration | ❌ |
+| Retry logic | ✅ GET: 3× backoff, POST: 0× (no duplicate writes) | mixed |
 | Async-first | ✅ `httpx.AsyncClient` | mixed |
-| Proxy-aware ABI | ✅ resolves EIP-1967/UUPS/Diamond | ❌ |
+| Never-throws | ✅ `ok/error/is_retryable` on every tool | ❌ |
 
 ---
 
 ## Install
 
 ```bash
-pip install langchain-keeperhub
+pip install keeperhub-langchain
 ```
 
-## Quick start
+With MCP bridge (adds KeeperHub's 20 official workflow tools):
+```bash
+pip install "keeperhub-langchain[workflows]"
+```
+
+---
+
+## Quick Start
 
 ```python
-import asyncio
 import os
-
 from langchain_keeperhub import KeeperHubToolkit
-from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
 
-async def main():
-    toolkit = KeeperHubToolkit()          # reads KEEPERHUB_API_KEY from env
-    llm = ChatOpenAI(model="gpt-4o")
+toolkit = KeeperHubToolkit()  # reads KEEPERHUB_API_KEY from env
+agent = create_react_agent(
+    model=ChatOpenAI(model="gpt-4o"),
+    tools=toolkit.get_tools(),
+)
 
-    system = await toolkit.build_system_prompt()   # injects live workflow list
-    agent = create_react_agent(llm, toolkit.get_tools(), state_modifier=system)
-
-    result = await agent.ainvoke({
-        "messages": [{"role": "user", "content": "What chains does KeeperHub support?"}]
-    })
-    print(result["messages"][-1].content)
-
-asyncio.run(main())
+result = agent.invoke({
+    "messages": [("user", "What's the best USDC yield on Base right now?")]
+})
+print(result["messages"][-1].content)
 ```
 
 Set your API key:
-
 ```bash
-export KEEPERHUB_API_KEY=kh_live_...
+export KEEPERHUB_API_KEY=kh_...
 ```
 
 ---
 
-## Tools reference
+## Safety Guardrails
 
-### Chain discovery
+```python
+# Block all mainnet writes — safe for development
+toolkit = KeeperHubToolkit(testnet_only=True)
 
+# Restrict to specific chains only
+toolkit = KeeperHubToolkit(
+    testnet_only=True,
+    allowed_chain_ids={"11155111", "84532"},  # Sepolia, Base Sepolia
+)
+```
+
+Applies to `transfer_funds`, `contract_call`, `check_and_execute`. Returns a clear error instead of executing on mainnet.
+
+---
+
+## Execution History (Audit Trail)
+
+```python
+# SQLite-backed — stdlib only, zero extra deps
+toolkit = KeeperHubToolkit(history=True)           # ~/.keeperhub/executions.db
+toolkit = KeeperHubToolkit(history="./project.db") # custom path
+
+# Or bring your own store
+from langchain_keeperhub import SqliteExecutionStore
+toolkit = KeeperHubToolkit(history=SqliteExecutionStore("./executions.db"))
+```
+
+When `history` is enabled:
+- Every `transfer_funds` call is persisted with execution ID, network, amount, recipient
+- `get_execution_status` updates the row with tx hash when the transaction completes
+- Adds `keeperhub_list_executions` tool — the agent can query past transactions
+
+```python
+# Query directly (without agent)
+records = await toolkit.store.list(status="completed", limit=10)
+for r in records:
+    print(r.execution_id, r.transaction_hash, r.amount)
+```
+
+---
+
+## MCP Bridge (Optional)
+
+```python
+# Combines 31 native tools + KeeperHub's 20 official MCP tools = 50+ tools
+toolkit = KeeperHubToolkit(
+    workflows=True,
+    mcp_include={"list_workflows", "execute_workflow", "ai_generate_workflow"},
+)
+tools = await toolkit.aget_tools()  # must use async when workflows=True
+```
+
+---
+
+## All 31 Tools
+
+### Chains & Contracts
 | Tool | Description |
 |------|-------------|
-| `keeperhub_list_chains` | All supported networks with chain IDs, symbols, explorer URLs |
-| `keeperhub_fetch_contract_abi` | Verified ABI — auto-resolves proxy patterns (EIP-1967, UUPS, Diamond) |
+| `keeperhub_list_chains` | List all 19 supported blockchains |
+| `keeperhub_fetch_contract_abi` | Fetch verified ABI, auto-resolves EIP-1967/UUPS/Diamond proxies |
 
-### Web3 execution
-
+### Web3 Execution
 | Tool | Description |
 |------|-------------|
 | `keeperhub_transfer_funds` | Send ETH or any ERC-20 token |
-| `keeperhub_contract_call` | Read (`call_type="read"`) or write (`call_type="write"`) any contract function |
-| `keeperhub_check_and_execute` | Atomic condition check + action — no race conditions |
-| `keeperhub_estimate_gas` | Estimate gas cost (ETH + USD) before submitting a write tx |
+| `keeperhub_contract_call` | Read or write any smart contract function |
+| `keeperhub_check_and_execute` | Atomic condition check + transaction (no race conditions) |
+| `keeperhub_estimate_gas` | Estimate gas cost before submitting |
 
-### Workflow automation
-
+### Workflow Automation
 | Tool | Description |
 |------|-------------|
-| `keeperhub_list_workflows` | Browse your org's saved workflows |
-| `keeperhub_execute_workflow` | Run a workflow by ID, blocks until complete (2-min timeout) |
-| `keeperhub_generate_workflow` | Create a new workflow from a plain-English description |
-| `keeperhub_get_execution_status` | Poll execution status + step logs |
+| `keeperhub_list_workflows` | List all org workflows |
+| `keeperhub_execute_workflow` | Run a workflow by ID |
+| `keeperhub_generate_workflow` | Create a workflow from plain English |
+| `keeperhub_get_execution_status` | Poll status, get tx hash |
+| `keeperhub_list_executions` | Query local execution history (requires `history=True`) |
+
+### DeFi Protocols (396 actions)
+| Tool | Description |
+|------|-------------|
+| `keeperhub_list_protocols` | Browse all 396 available actions |
+| `keeperhub_protocol_action` | Execute any action — Aave V3/V4, Uniswap, Lido, Compound V3, Morpho, Yearn V3, Curve, CowSwap, Aerodrome, Rocket Pool, Pendle, Sky, Spark, Ethena, Safe |
+| `keeperhub_get_action_schema` | Get required params for any action |
+| `keeperhub_search_actions` | Search 396 actions by keyword |
+
+### Payments
+| Tool | Description |
+|------|-------------|
+| `keeperhub_pay_and_run` | Execute a paid workflow via x402 (Base USDC) or MPP (Tempo USDC.e) |
+
+### Agent Identity & Wallet
+| Tool | Description |
+|------|-------------|
+| `keeperhub_register_agent` | Register agent on-chain (ERC-8004) — mints identity NFT |
+| `keeperhub_wallet_balance` | Check managed wallet balance across all chains |
+| `keeperhub_provision_wallet` | Provision new Turnkey-backed agentic wallet |
+
+### Notifications
+| Tool | Description |
+|------|-------------|
+| `keeperhub_notify` | Send notification via Discord, Slack, email, or webhook |
+| `keeperhub_list_integrations` | List available notification integrations |
+
+### Chainlink
+| Tool | Description |
+|------|-------------|
+| `keeperhub_chainlink_ccip` | Cross-chain token transfer via Chainlink CCIP |
+| `keeperhub_chainlink_price` | Get latest price from Chainlink oracle |
+
+### Ajna Protocol
+| Tool | Description |
+|------|-------------|
+| `keeperhub_ajna` | Permissionless lending — borrower positions, pool health, auction status |
+
+### Utility
+| Tool | Description |
+|------|-------------|
+| `keeperhub_run_code` | Execute custom JavaScript in KeeperHub sandbox |
+| `keeperhub_math_aggregate` | Sum, average, median, min, max |
+
+### Workflow Management
+| Tool | Description |
+|------|-------------|
+| `keeperhub_workflow_version` | Get workflow version history |
+| `keeperhub_workflow_migrate` | Migrate workflow to new version |
+| `keeperhub_workflow_publish` | Publish workflow to KeeperHub marketplace |
+
+### ENS
+| Tool | Description |
+|------|-------------|
+| `keeperhub_ens_resolve` | Resolve ENS name → address (e.g. vitalik.eth) |
+| `keeperhub_ens_text_record` | Read ENS text records (avatar, email, twitter, url) |
+| `keeperhub_ens_lookup` | Reverse lookup — address → ENS name |
 
 ---
 
-## Selective tools
-
-Load only the tools your agent needs:
+## Selective Tools
 
 ```python
+# Only load what your agent needs
 toolkit = KeeperHubToolkit(
-    tools=["list_workflows", "execute_workflow", "execution_status"]
+    tools=["list_protocols", "protocol_action", "wallet_balance", "ens_resolve"]
 )
 ```
 
-Valid keys: `list_chains`, `fetch_abi`, `transfer`, `contract_call`,
-`check_and_execute`, `estimate_gas`, `list_workflows`, `execute_workflow`,
-`generate_workflow`, `execution_status`.
+---
+
+## Retry Logic
+
+| Request type | Retries | Backoff |
+|---|---|---|
+| GET (read) | 3 | Linear: 1s, 2s, 3s |
+| HTTP 429 | 3 | Honours `Retry-After` header (max 60s) |
+| POST/PATCH/DELETE | **0** | No retry — prevents duplicate writes |
+| HTTP 4xx/5xx | 0 | Raises immediately |
 
 ---
 
-## Observability / session context
-
-Pass metadata that appears in KeeperHub execution logs and traces:
-
-```python
-toolkit = KeeperHubToolkit(
-    agent_context={
-        "session_id": conversation_id,
-        "run_id":     agent_run_id,
-        "goal":       "Rebalance DeFi portfolio for user",
-    }
-)
-```
-
-These map to `X-Agent-Session-Id`, `X-Agent-Run-Id`, and `X-Agent-Goal` headers on every request.
-
----
-
-## System prompt builder
-
-```python
-system = await toolkit.build_system_prompt(include_workflows=True)
-# Returns a ready-to-use prompt fragment that:
-# - Lists all 10 tools with usage guidance
-# - Injects your org's live workflow names (sanitized against prompt injection)
-# - Falls back gracefully if the API is unavailable
-```
-
----
-
-## Never-throws design
+## Never-Throws Design
 
 Every tool returns a JSON string — never raises. The agent always has a path forward:
 
 ```json
 {
   "ok": false,
-  "summary": "Workflow wf_abc failed with status 'error'. Execution ID: exec_xyz.",
-  "execution_id": "exec_xyz",
-  "status": "error",
-  "is_retryable": true,
-  "suggestion": "Check keeperhub_get_execution_status for details."
+  "error": "testnet_only mode — mainnet write blocked (chain 1).",
+  "is_retryable": false
 }
 ```
 
-Agent reasoning guide baked into every tool description:
-1. `keeperhub_list_workflows` first — reuse before generating
-2. `keeperhub_generate_workflow` → `keeperhub_execute_workflow` for new automations
-3. For write calls: poll with `keeperhub_get_execution_status`
-4. If `ok=false` and `is_retryable=true`: retry once, then report failure
-5. Always surface `summary` to the user — it's written for humans
-
 ---
 
-## Direct tool usage (without toolkit)
+## Supported Chains (19)
 
-```python
-from langchain_keeperhub import KeeperHubClient, ListChainsTool, ExecuteWorkflowTool
-
-client = KeeperHubClient(api_key="kh_live_...")
-
-chains_tool = ListChainsTool(client=client)
-wf_tool = ExecuteWorkflowTool(client=client)
-
-chains = await chains_tool._arun()
-result = await wf_tool._arun(workflow_id="wf_abc123", input={"amount": "0.01"})
-```
-
----
-
-## Context manager (resource cleanup)
-
-```python
-async with KeeperHubToolkit() as toolkit:
-    tools = toolkit.get_tools()
-    # ... use tools
-# httpx.AsyncClient is closed automatically
-```
+Ethereum (1), Base (8453), Arbitrum (42161), Optimism (10), Polygon (137), Avalanche (43114), BNB (56), Sepolia (11155111), Base Sepolia (84532), Polygon Amoy (80002), Arbitrum Sepolia (421614), Avalanche Fuji (43113), Tempo/MPP (4217), and more.
 
 ---
 
@@ -189,68 +255,34 @@ async with KeeperHubToolkit() as toolkit:
 
 ```python
 KeeperHubToolkit(
-    api_key="kh_live_...",           # default: KEEPERHUB_API_KEY env var
-    base_url="https://app.keeperhub.com",  # default
-    timeout=30.0,                    # per-request timeout in seconds
-    tools=None,                      # None = all 10 tools
-    agent_context=None,              # dict with session_id, run_id, goal
+    api_key="kh_...",                    # or KEEPERHUB_API_KEY env var
+    base_url="https://app.keeperhub.com", # default
+    timeout=30.0,                         # per-request timeout
+    tools=None,                           # None = all 31 tools
+    agent_context={                       # optional observability
+        "session_id": "...",
+        "goal": "DeFi yield optimization",
+    },
+    testnet_only=False,                   # safety guardrail
+    allowed_chain_ids=None,               # chain allowlist
+    history=False,                        # execution store
+    workflows=False,                      # MCP bridge
 )
 ```
 
 ---
 
-## LangGraph full example
+## Links
 
-```python
-import asyncio
-from langchain_keeperhub import KeeperHubToolkit
-from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
-
-async def main():
-    async with KeeperHubToolkit(
-        agent_context={"session_id": "demo-001", "goal": "DeFi portfolio management"}
-    ) as toolkit:
-        llm = ChatOpenAI(model="gpt-4o", temperature=0)
-        system_prompt = await toolkit.build_system_prompt()
-        agent = create_react_agent(
-            llm,
-            toolkit.get_tools(),
-            state_modifier=system_prompt,
-        )
-
-        result = await agent.ainvoke({
-            "messages": [{
-                "role": "user",
-                "content": (
-                    "Swap 0.01 ETH for USDC on Base. "
-                    "Check if a workflow exists first, otherwise create one."
-                ),
-            }]
-        })
-
-        for msg in result["messages"]:
-            print(f"[{msg.type}] {msg.content[:200]}")
-
-asyncio.run(main())
-```
-
----
-
-## Requirements
-
-- Python ≥ 3.10
-- `httpx >= 0.27`
-- `langchain-core >= 0.2`
-- `pydantic >= 2.0`
-
-Optional (for running agents):
-```bash
-pip install langchain-openai langgraph python-dotenv
-```
+- **KeeperHub platform:** https://app.keeperhub.com
+- **GitHub:** https://github.com/dhruv457457/keeperhub-eth-global
+- **API docs:** https://app.keeperhub.com/api/openapi
+- **ElizaOS plugin:** `@keeperhub/elizaos`
+- **TypeScript LangChain:** `@keeperhub/langchain`
+- **OpenClaw adapter:** `@keeperhub/openclaw-langchain`
 
 ---
 
 ## License
 
-Apache 2.0 — see [LICENSE](../../LICENSE).
+MIT

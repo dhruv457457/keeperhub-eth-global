@@ -3,8 +3,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "langchain-keeperhub"
-version = "0.1.0"
+name = "keeperhub-langchain"
+version = "0.3.0"
 description = "LangChain toolkit for KeeperHub — reliable onchain execution, DeFi protocol actions, and AI workflow generation for any LangChain agent"
 readme = "README.md"
 license = { text = "Apache-2.0" }

@@ -43,7 +43,7 @@ class ListWorkflowsTool(BaseTool):
     async def _arun(self, project_id: str | None = None, tag_id: str | None = None) -> str:  # type: ignore[override]
         try:
             workflows = await self.client.get("/api/workflows", projectId=project_id, tagId=tag_id)  # type: ignore[attr-defined]
-            return json.dumps([
+            items = [
                 {
                     "id": w["id"],
                     "name": _sanitize(w["name"]),
@@ -52,9 +52,10 @@ class ListWorkflowsTool(BaseTool):
                     "updated_at": w.get("updatedAt"),
                 }
                 for w in workflows
-            ])
+            ]
+            return json.dumps({"ok": True, "workflows": items, "count": len(items)})
         except Exception as e:
-            return json.dumps({"error": str(e)})
+            return json.dumps({"ok": False, "error": str(e)})
 
     def _run(self, **kwargs: object) -> str:  # type: ignore[override]
         raise NotImplementedError("Use async version")
@@ -300,6 +301,7 @@ class GetExecutionStatusTool(BaseTool):
                     raise
 
             result: dict[str, Any] = {
+                "ok": True,
                 "execution_id": execution_id,
                 "status": status.get("status"),
                 "progress": status.get("progress"),
@@ -348,8 +350,8 @@ class GetExecutionStatusTool(BaseTool):
         except Exception as e:
             # Don't reveal whether an ID exists vs access denied
             if "404" in str(e) or "401" in str(e) or "403" in str(e):
-                return json.dumps({"error": "Execution not found or not accessible with your API key."})
-            return json.dumps({"error": str(e)})
+                return json.dumps({"ok": False, "error": "Execution not found or not accessible with your API key."})
+            return json.dumps({"ok": False, "error": str(e)})
 
     def _run(self, **kwargs: object) -> str:  # type: ignore[override]
         raise NotImplementedError("Use async version")

@@ -1,25 +1,25 @@
 {
-  "name": "@keeperhub/openclaw-langchain",
-  "version": "1.0.0",
+  "name": "@ethglobal-openagent/openclaw-keeperhub",
+  "version": "1.8.0",
   "description": "KeeperHub LangChain tools wrapped as native OpenClaw tools",
   "main": "./dist/index.js",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "openclaw.plugin.json", "README.md"],
+  "openclaw": {
+    "extensions": ["./dist/index.js"]
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "license": "MIT",
-  "dependencies": {
-    "@keeperhub/langchain": "workspace:*"
-  },
   "devDependencies": {
+    "@ethglobal-openagent/langchain-keeperhub": ">=0.1.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
-  },
-  "peerDependencies": {
-    "@keeperhub/langchain": "workspace:*"
   }
 }
