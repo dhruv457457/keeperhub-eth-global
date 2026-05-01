@@ -1,48 +1,68 @@
-# @ethglobal-openagent/elizaos-keeperhub
+# @keeperhub/elizaos
 
-[![npm](https://img.shields.io/npm/v/@ethglobal-openagent/elizaos-keeperhub)](https://www.npmjs.com/package/@ethglobal-openagent/elizaos-keeperhub)
+[![npm](https://img.shields.io/npm/v/@keeperhub/elizaos)](https://www.npmjs.com/package/@keeperhub/elizaos)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**KeeperHub plugin for ElizaOS** — gives any ElizaOS agent the ability to execute DeFi operations, blockchain transactions, cross-chain transfers, workflow automation, and onchain notifications across 19 chains.
+KeeperHub plugin for ElizaOS — 19 actions for DeFi, transfers, and workflow automation.
 
-Built for the **ETHGlobal OpenAgents Hackathon**.
+---
+
+## Skill Install
+
+```bash
+npx agentskills install keeperhub
+```
 
 ---
 
 ## Install
 
 ```bash
-npm install @ethglobal-openagent/elizaos-keeperhub
+npm install @keeperhub/elizaos
 ```
 
 ---
 
-## Quick Start
+## 5-Minute Quickstart
 
 ```typescript
-import { createKeeperHubPlugin } from "@ethglobal-openagent/elizaos-keeperhub";
+// npm install @keeperhub/elizaos @elizaos/core
+// export KEEPERHUB_API_KEY=kh_...
 
-const agent = new AgentRuntime({
-  character,
-  plugins: [
-    createKeeperHubPlugin({
-      apiKey: process.env.KEEPERHUB_API_KEY,
-    }),
-  ],
+import { AgentRuntime, ModelProviderName } from "@elizaos/core";
+import { createKeeperHubPlugin } from "@keeperhub/elizaos";
+
+const plugin = createKeeperHubPlugin({
+  apiKey: process.env.KEEPERHUB_API_KEY!,
+  testnetOnly: true,
 });
+
+const runtime = new AgentRuntime({
+  modelProvider: ModelProviderName.OPENAI,
+  character: {
+    name: "DeFi Agent",
+    bio: ["I help with onchain DeFi operations via KeeperHub."],
+    plugins: [plugin],
+  },
+});
+
+// Agent now responds to:
+// "Check my wallet balance" → calls keeperhub_wallet_balance
+// "Send 0.01 ETH to vitalik.eth" → ENS resolve + transfer
+// "What's the best USDC yield on Base?" → protocol_action with Aave
 ```
+
+Get your API key at [app.keeperhub.com](https://app.keeperhub.com) → Settings → API Keys.
 
 ---
 
-## Features
+## All 19 Actions
 
-### 19 Actions
-
-| Action | Trigger phrases | What it does |
+| Action | Trigger Phrases | What It Does |
 |--------|----------------|--------------|
 | `KEEPERHUB_LIST_WORKFLOWS` | "list workflows", "show automations" | List all KeeperHub workflows |
-| `KEEPERHUB_EXECUTE_WORKFLOW` | "run workflow", "execute" | Run a workflow by ID |
-| `KEEPERHUB_GENERATE_WORKFLOW` | "create workflow", "automate" | Generate workflow from plain English |
+| `KEEPERHUB_EXECUTE_WORKFLOW` | "run workflow", "execute workflow" | Run a workflow by ID |
+| `KEEPERHUB_GENERATE_WORKFLOW` | "create workflow", "automate this" | Generate workflow from plain English |
 | `KEEPERHUB_CHECK_EXECUTION` | "check status", "execution status" | Poll execution status + tx hash |
 | `KEEPERHUB_TRANSFER` | "send ETH", "transfer tokens" | Transfer ETH or ERC-20 tokens |
 | `KEEPERHUB_CONTRACT_READ` | "read contract", "call view function" | Read any smart contract |
@@ -56,66 +76,36 @@ const agent = new AgentRuntime({
 | `KEEPERHUB_CHAINLINK_CCIP` | "cross-chain transfer", "bridge via CCIP" | Cross-chain token transfer |
 | `KEEPERHUB_RUN_CODE` | "run JavaScript", "execute code" | Execute JS in KeeperHub sandbox |
 | `KEEPERHUB_ACTION_SCHEMA` | "what params does Aave need" | Get schema for any protocol action |
+| `KEEPERHUB_WALLET_BALANCE` | "check my balance", "wallet balance" | Check wallet balance across chains |
+| `KEEPERHUB_ENS_RESOLVE` | "resolve ENS", "what address is vitalik.eth" | Resolve ENS name → address |
 | `KEEPERHUB_WORKFLOW_VERSION` | "workflow history", "versions" | Get workflow version history |
-| `KEEPERHUB_WORKFLOW_MIGRATE` | "migrate workflow" | Migrate workflow to new version |
-
-### 2 Providers
-
-- **Wallet Provider** — injects wallet address and token balances into agent context
-- **Workflows Provider** — injects available workflows into agent context for better decisions
-
-### 1 Evaluator
-
-- **Execution Success** — detects execution IDs in conversation, stores outcomes in agent memory
 
 ---
 
-## Safety Options
+## Safety
 
 ```typescript
 createKeeperHubPlugin({
-  apiKey: process.env.KEEPERHUB_API_KEY,
+  apiKey: process.env.KEEPERHUB_API_KEY!,
 
   // Block all mainnet writes — safe for development
   testnetOnly: true,
 
   // Restrict to specific chains
-  allowedChainIds: ["11155111", "84532"],
-
-  // Only allow specific workflows to execute
-  allowedWorkflowIds: ["wf_rebalance", "wf_yield_scout"],
-
-  // Disable web3 actions entirely (workflow-only mode)
-  enableWeb3Actions: false,
-
-  // Observability — appears in KeeperHub logs
-  agentContext: {
-    sessionId: runtime.agentId,
-    goal: "Autonomous DeFi yield optimization",
-  },
+  allowedChainIds: ["11155111", "84532"], // Sepolia, Base Sepolia
 })
 ```
 
 ---
 
-## Supported DeFi Protocols (396 actions)
-
-Aave V3/V4, Uniswap, Lido, Compound V3, Morpho, Yearn V3, Curve, CowSwap, Aerodrome, Rocket Pool, Pendle, Sky (MakerDAO), Spark, Ethena, Safe, Chainlink CCIP
-
----
-
-## Supported Chains (19)
-
-Ethereum (1), Base (8453), Arbitrum (42161), Optimism (10), Polygon (137), Avalanche (43114), BNB (56), Sepolia (11155111), Base Sepolia (84532), and more.
-
----
-
 ## Links
 
-- **KeeperHub:** https://app.keeperhub.com
-- **GitHub:** https://github.com/dhruv457457/keeperhub-eth-global
-- **Python SDK:** `pip install keeperhub-langchain`
+- **GitHub:** https://github.com/dhruv457457/keeperhub-eth-global/tree/staging/packages/elizaos-plugin
+- **KeeperHub platform:** https://app.keeperhub.com
+- **API docs:** https://app.keeperhub.com/api/openapi
+- **Python LangChain:** `pip install keeperhub-langchain`
 - **TS LangChain:** `npm install @ethglobal-openagent/langchain-keeperhub`
+- **OpenClaw (ElizaOS):** `openclaw plugin install @ethglobal-openagent/openclaw-eliza-keeperhub`
 
 ---
 

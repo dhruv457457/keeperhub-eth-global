@@ -1,129 +1,119 @@
-# @keeperhub/openclaw-langchain
+# @ethglobal-openagent/openclaw-keeperhub
 
-Wraps the `@keeperhub/langchain` TypeScript SDK as native OpenClaw tools.
+[![npm](https://img.shields.io/npm/v/@ethglobal-openagent/openclaw-keeperhub)](https://www.npmjs.com/package/@ethglobal-openagent/openclaw-keeperhub)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Each of the 24 KeeperHub LangChain tools becomes an OpenClaw tool. When OpenClaw calls a tool, this adapter invokes the LangChain tool's underlying function and returns the result.
+KeeperHub's 27 LangChain tools as native OpenClaw tools — install once, use from any OpenClaw agent in plain English.
 
-## How It Works
+---
+
+## Skill Install
+
+```bash
+npx agentskills install keeperhub
+```
+
+---
+
+## 5-Minute Quickstart
+
+**Step 1: Install the plugin**
+
+```bash
+openclaw plugin install @ethglobal-openagent/openclaw-keeperhub
+```
+
+**Step 2: Configure** (`~/.openclaw/openclaw.json` — OpenClaw sets this automatically, you can set `apiKey` manually)
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "keeperhub-langchain": {
+        "config": {
+          "apiKey": "kh_...",
+          "testnetOnly": true
+        },
+        "enabled": true
+      }
+    }
+  }
+}
+```
+
+**Step 3: Start OpenClaw and talk to it**
+
+```
+openclaw
+> Check my wallet balance on Base
+→ Your Base wallet: 0x1234...abcd
+  ETH: 0.05 | USDC: 100.00
+
+> Supply 50 USDC to Aave on Base
+→ Executing aave-v3/supply... tx: 0xabc...
+```
+
+Get your API key at [app.keeperhub.com](https://app.keeperhub.com) → Settings → API Keys.
+
+---
+
+## Architecture
 
 ```
 OpenClaw agent
-  └── @keeperhub/openclaw-langchain (this package)
-        └── @keeperhub/langchain (LangChain SDK — 24 tools)
+  └── @ethglobal-openagent/openclaw-keeperhub
+        └── @ethglobal-openagent/langchain-keeperhub (27 tools)
               └── KeeperHub REST API
 ```
 
-**OpenClaw genuinely uses our LangChain SDK** — not raw API calls.
+OpenClaw genuinely uses the LangChain SDK — not raw API calls.
 
-## Available Tools
+---
 
-All 24 tools from `@keeperhub/langchain` are exposed:
+## All 27 Tools
 
-| OpenClaw Tool Name | Description |
-|--------------------|-------------|
-| `keeperhub_list_chains` | List 19 supported blockchains |
-| `keeperhub_fetch_contract_abi` | Fetch verified contract ABI |
-| `keeperhub_transfer_funds` | Send ETH or ERC-20 tokens |
-| `keeperhub_contract_call` | Read or write any smart contract |
+| Tool | Description |
+|------|-------------|
+| `keeperhub_list_chains` | List all 19 supported blockchains |
+| `keeperhub_fetch_contract_abi` | Fetch verified ABI, auto-resolves proxies |
+| `keeperhub_transfer_funds` | Send ETH or any ERC-20 token |
+| `keeperhub_contract_call` | Read or write any smart contract function |
 | `keeperhub_check_and_execute` | Atomic condition check + transaction |
-| `keeperhub_estimate_gas` | Estimate gas cost |
-| `keeperhub_list_workflows` | List KeeperHub workflows |
+| `keeperhub_estimate_gas` | Estimate gas cost before submitting |
+| `keeperhub_list_workflows` | List all org workflows |
 | `keeperhub_execute_workflow` | Run a workflow by ID |
-| `keeperhub_generate_workflow` | Create workflow from plain English |
-| `keeperhub_get_execution_status` | Poll execution status + tx hash |
-| `keeperhub_list_protocols` | Browse 396 DeFi protocol actions |
-| `keeperhub_protocol_action` | Execute any Aave/Uniswap/Lido action |
-| `keeperhub_pay_and_run` | Pay via x402/MPP and run workflow |
-| `keeperhub_register_agent` | Register on-chain identity (ERC-8004) |
-| `keeperhub_wallet_balance` | Check managed wallet balance |
-| `keeperhub_provision_wallet` | Provision new agentic wallet |
+| `keeperhub_generate_workflow` | Create a workflow from plain English |
+| `keeperhub_get_execution_status` | Poll status, get tx hash |
+| `keeperhub_list_executions` | Query execution history |
+| `keeperhub_list_protocols` | Browse all 396 available protocol actions |
+| `keeperhub_protocol_action` | Execute any action — Aave, Uniswap, Lido, Compound, Morpho |
+| `keeperhub_get_action_schema` | Get required params for any action |
+| `keeperhub_search_actions` | Search 396 actions by keyword |
+| `keeperhub_pay_and_run` | Execute a paid workflow via x402/MPP |
+| `keeperhub_register_agent` | Register agent on-chain (ERC-8004) |
+| `keeperhub_wallet_balance` | Check managed wallet balance across all chains |
+| `keeperhub_provision_wallet` | Provision new Turnkey-backed agentic wallet |
 | `keeperhub_notify` | Send Discord/Slack/email notification |
 | `keeperhub_ens_resolve` | Resolve ENS name → address |
-| `keeperhub_ens_lookup` | Reverse lookup address → ENS |
-| `keeperhub_chainlink_ccip` | Cross-chain transfer via CCIP |
-| `keeperhub_math_aggregate` | Sum, average, min, max |
-| `keeperhub_get_action_schema` | Get params for any protocol action |
-| `keeperhub_search_actions` | Search 396 actions by keyword |
-| `keeperhub_run_code` | Execute JavaScript in sandbox |
+| `keeperhub_ens_text_record` | Read ENS text records |
+| `keeperhub_ens_lookup` | Reverse lookup — address → ENS name |
+| `keeperhub_chainlink_ccip` | Cross-chain token transfer via Chainlink CCIP |
+| `keeperhub_chainlink_price` | Get latest price from Chainlink oracle |
+| `keeperhub_run_code` | Execute custom JavaScript in KeeperHub sandbox |
+| `keeperhub_math_aggregate` | Sum, average, median, min, max |
 
-## Setup
-
-### 1. Install
-
-```bash
-npm install @keeperhub/openclaw-langchain
-```
-
-### 2. Set environment variable
-
-```bash
-export KEEPERHUB_API_KEY=kh_...
-```
-
-### 3. Configure OpenClaw
-
-```json
-{
-  "plugins": {
-    "keeperhub-langchain": {
-      "apiKey": "${KEEPERHUB_API_KEY}",
-      "testnetOnly": true
-    }
-  }
-}
-```
-
-### 4. Run
-
-```bash
-openclaw run
-```
-
-## Use in Code
-
-```typescript
-import { createKeeperHubOpenClawTools } from "@keeperhub/openclaw-langchain";
-
-const tools = createKeeperHubOpenClawTools({
-  apiKey: process.env.KEEPERHUB_API_KEY!,
-  testnetOnly: true,  // block mainnet writes in dev
-  // optionally restrict to specific tools:
-  tools: ["transfer", "wallet_balance", "list_protocols", "protocol_action"],
-});
-
-// Each tool has: name, description, parameters, execute()
-for (const tool of tools) {
-  console.log(tool.name, "-", tool.description);
-}
-
-// Call a tool directly:
-const result = await tools
-  .find(t => t.name === "keeperhub_list_chains")!
-  .execute({});
-
-console.log(result.text);    // human-readable output
-console.log(result.success); // true/false
-console.log(result.metadata); // full API response
-```
-
-## Safety Options
-
-```json
-{
-  "plugins": {
-    "keeperhub-langchain": {
-      "apiKey": "${KEEPERHUB_API_KEY}",
-      "testnetOnly": true,
-      "allowedChainIds": ["11155111", "84532"]
-    }
-  }
-}
-```
-
-- `testnetOnly: true` — blocks all mainnet writes (transfer, contract write, check-and-execute)
-- `allowedChainIds` — extra allowlist on top of testnetOnly
+---
 
 ## Links
 
-- KeeperHub: https://app.keeperhub.com
-- Full SDK: https://github.com/dhruv457457/keeperhub-eth-global
+- **GitHub:** https://github.com/dhruv457457/keeperhub-eth-global/tree/staging/packages/openclaw-adapter-langchain
+- **KeeperHub platform:** https://app.keeperhub.com
+- **LangChain toolkit (direct):** `npm install @ethglobal-openagent/langchain-keeperhub`
+- **OpenClaw ElizaOS adapter:** `openclaw plugin install @ethglobal-openagent/openclaw-eliza-keeperhub`
+- **Python version:** `pip install keeperhub-langchain`
+
+---
+
+## License
+
+MIT
