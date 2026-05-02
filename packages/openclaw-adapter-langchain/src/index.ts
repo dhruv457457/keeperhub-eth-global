@@ -39,16 +39,12 @@ interface PluginApi {
 // ─── Plugin Entry ─────────────────────────────────────────────────────────────
 
 export function register(api: PluginApi): void {
-  // Debug: log what OpenClaw actually passes
-  console.log("[keeperhub] api keys:", Object.keys(api ?? {}));
-  console.log("[keeperhub] api.config:", JSON.stringify(api?.config));
-  console.log("[keeperhub] env key exists:", !!process.env.KEEPERHUB_API_KEY);
-
-  const cfg = (api as any).config ?? (api as any).pluginConfig ?? (api as any).settings ?? {};
-  const apiKey = cfg.apiKey
-    || (api as any).apiKey
-    || process.env.KEEPERHUB_API_KEY
-    || "";
+  // Read plugin-specific config from openclaw.json plugins.entries["keeperhub-langchain"].config
+  const pluginEntry = (api as any).config?.plugins?.entries?.["keeperhub-langchain"]?.config ?? {};
+  const cfg = Object.keys(pluginEntry).length > 0
+    ? pluginEntry
+    : ((api as any).pluginConfig ?? (api as any).settings ?? (api as any).config ?? {});
+  const apiKey = cfg.apiKey || process.env.KEEPERHUB_API_KEY || "";
   const { baseUrl, testnetOnly, allowedChainIds } = cfg;
 
   if (!apiKey) throw new Error("KeeperHub API key required. Set KEEPERHUB_API_KEY env var.");
