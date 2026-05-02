@@ -97,60 +97,75 @@ export function createGenerateWorkflowAction(
       });
 
       try {
-        if (shouldExecute) {
-          // safeWait never throws — returns an AgentObservation with a human-readable summary
-          let lastProgressStep = "";
-          const obs = await kh
-            .pipeline()
-            .generate(prompt)
-            .safeWait({
-              timeout: 120_000,
-              onProgress: (status) => {
-                if (status.progress) {
-                  const { completedSteps, totalSteps, currentNodeName } =
-                    status.progress;
-                  const stepMsg = currentNodeName ?? `step ${completedSteps}`;
-                  if (stepMsg !== lastProgressStep) {
-                    lastProgressStep = stepMsg;
-                    void callback?.({
-                      text: `🔄 ${completedSteps}/${totalSteps}: ${stepMsg}…`,
-                    });
-                  }
-                }
-              },
-            });
+        // Call /api/ai/generate directly — it streams NDJSON operation events
+        // (setName, setDescription, addNode, addEdge). Assemble then save.
+        const kh_ = kh as unknown as {
+          _http: {
+            requestResponse: (method: string, path: string, opts: object) => Promise<Response>;
+          };
+        };
 
-          if (!obs.ok) {
-            await callback?.({ text: `❌ ${obs.summary}` });
-            return false;
+        const response = await kh_._http.requestResponse("POST", "/api/ai/generate", {
+          body: { prompt },
+        });
+
+        if (!response.body) throw new Error("Empty response from AI generate endpoint");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let name = prompt.slice(0, 60);
+        let description = "";
+        const nodes: unknown[] = [];
+        const edges: unknown[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const event = JSON.parse(line) as { type: string; operation?: Record<string, unknown> };
+              if (event.type === "operation" && event.operation) {
+                const op = event.operation;
+                if (op["op"] === "setName") name = String(op["name"] ?? name);
+                else if (op["op"] === "setDescription") description = String(op["description"] ?? "");
+                else if (op["op"] === "addNode") nodes.push(op["node"]);
+                else if (op["op"] === "addEdge") edges.push(op["edge"]);
+              }
+            } catch { /* skip malformed lines */ }
           }
+        }
+        reader.releaseLock();
 
-          const result = obs.result!;
-
-          // pending_approval means a payment guardrail paused execution
-          if (result.status === "pending_approval") {
-            await callback?.({ text: `⏸ ${obs.summary}` });
-            return false;
-          }
-
-          await callback?.({
-            text: [
-              "✅ Workflow generated and executed successfully!",
-              `📋 Execution ID: \`${result.executionId ?? "pending"}\``,
-              `📊 Status: **${result.status}**`,
-            ].join("\n"),
-          });
-
-          return result.status === "completed";
+        if (nodes.length === 0) {
+          throw new Error("AI did not generate any workflow nodes. Try a more specific prompt.");
         }
 
-        const generated = await kh.workflows.generateSpec({ prompt });
         const saved = await kh.workflows.create({
-          name: generated.name,
-          description: generated.description,
-          nodes: generated.nodes,
-          edges: generated.edges,
+          name,
+          description,
+          nodes: nodes as Parameters<typeof kh.workflows.create>[0]["nodes"],
+          edges: edges as Parameters<typeof kh.workflows.create>[0]["edges"],
         });
+
+        if (shouldExecute) {
+          const handle = await kh.workflows.execute(saved.id, {});
+          await callback?.({
+            text: [
+              "✅ Workflow generated and executing!",
+              `📋 Workflow: **${saved.name}**`,
+              `🆔 Execution ID: \`${handle.id}\``,
+              `📊 Status: **running**`,
+              "",
+              `Check progress: *"Check execution ${handle.id}"*`,
+            ].join("\n"),
+          });
+          return true;
+        }
 
         await callback?.({
           text: [

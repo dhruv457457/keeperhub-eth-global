@@ -213,67 +213,29 @@ export function createExecuteWorkflowAction(
         text: `⚙️ Executing KeeperHub workflow \`${workflowId}\`${input ? " with provided inputs" : ""}…`,
       });
 
-      // tryRun never throws — always returns a structured AgentObservation.
-      // onProgress fires intermediate callback messages so the user isn't left
-      // staring at silence for up to 2 minutes during a long-running workflow.
-      let lastProgressStep = "";
-      const obs = await kh.tryRun(workflowId, {
-        input,
-        wait: true,
-        verbose: true,
-        mode: "safe",
-        waitOptions: {
-          timeout: 120_000,
-          onProgress: (status) => {
-            if (status.progress) {
-              const { completedSteps, totalSteps, currentNodeName } =
-                status.progress;
-              const stepMsg = currentNodeName ?? `step ${completedSteps}`;
-              if (stepMsg !== lastProgressStep) {
-                lastProgressStep = stepMsg;
-                void callback?.({
-                  text: `🔄 ${completedSteps}/${totalSteps}: ${stepMsg}…`,
-                });
-              }
-            }
-          },
-        },
-      });
-
-      if (!obs.ok) {
-        elizaLogger.error(
-          `[KeeperHub] Workflow execution failed: ${obs.error?.message ?? "unknown"}`
-        );
-        const retryHint = obs.error?.isRetryable ? " (retryable)" : "";
+      // kh.workflows.execute() fires immediately and returns a handle with .id
+      // tryRun() was doing a preflight lookup that fails for user workflows
+      let handle: { id: string };
+      try {
+        handle = await kh.workflows.execute(workflowId, input ?? {});
+      } catch (execErr) {
+        elizaLogger.error(`[KeeperHub] Workflow execution failed: ${execErr}`);
         await callback?.({
-          text: `❌ ${obs.summary}${retryHint}`,
+          text: `❌ Failed to execute workflow \`${workflowId}\`: ${execErr instanceof Error ? execErr.message : String(execErr)}`,
         });
         return false;
       }
 
-      const result = obs.result!;
-      const statusEmoji =
-        result.status === "completed"
-          ? "✅"
-          : result.status === "failed"
-            ? "❌"
-            : "⚠️";
-
-      const messageText = [
-        `${statusEmoji} Workflow \`${workflowId}\` finished with status **${result.status}**.`,
-        result.execution.transactionHash
-          ? `🔗 Transaction: \`${result.execution.transactionHash}\``
-          : null,
-        result.execution.gasUsedWei
-          ? `⛽ Gas used: ${result.execution.gasUsedWei} wei`
-          : null,
-        `🔁 Attempts: ${result.attempts}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      await callback?.({ text: messageText });
-      return result.status === "completed";
+      await callback?.({
+        text: [
+          `✅ Workflow \`${workflowId}\` is now running!`,
+          `📋 Execution ID: \`${handle.id}\``,
+          `📊 Status: **running**`,
+          "",
+          `Check progress: *"Check execution ${handle.id}"*`,
+        ].join("\n"),
+      });
+      return true;
     },
 
     examples: [
