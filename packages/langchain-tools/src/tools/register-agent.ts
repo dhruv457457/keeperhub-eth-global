@@ -3,52 +3,50 @@ import type { KeeperHub } from "keeperhub-sdk";
 import { z } from "zod";
 
 /**
- * Register this agent on-chain via ERC-8004.
- * Mints an NFT identity on Ethereum Mainnet — idempotent, safe to call on startup.
+ * Get KeeperHub's ERC-8004 agent registry card.
+ *
+ * NOTE: /api/agent-registry is a GET-only endpoint that returns KeeperHub's
+ * own ERC-8004 agent card (agentId 31875 on Ethereum mainnet). It does NOT
+ * register a new agent for the caller — POST returns 405.
+ *
+ * For actual on-chain user agent registration, the caller would need to call
+ * the ERC-8004 registry contract (0x8004A169FB4a3325136EB29fA0ceB6D2e539a432)
+ * directly via keeperhub_contract_call with a funded wallet.
  */
 export function createRegisterAgentTool(kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_register_agent",
     description:
-      "Register this AI agent on-chain as an ERC-8004 identity. " +
-      "Mints an NFT on Ethereum Mainnet representing the agent. " +
-      "Idempotent — safe to call on every startup, will not create duplicates. " +
-      "Returns the on-chain registration with NFT token ID and registry address.",
-    schema: z.object({
-      name: z
-        .string()
-        .max(64)
-        .optional()
-        .describe("Agent name (e.g. 'My DeFi Agent')"),
-      description: z
-        .string()
-        .max(256)
-        .optional()
-        .describe("What this agent does"),
-      capabilities: z
-        .array(z.string())
-        .max(20)
-        .optional()
-        .describe(
-          "List of capability slugs e.g. ['aave-v3/supply', 'uniswap/swap-exact-input']"
-        ),
-    }),
-    func: async ({ name, description, capabilities }) => {
+      "Get KeeperHub's ERC-8004 agent registry info — the on-chain identity card for " +
+      "the KeeperHub platform (agentId 31875 on Ethereum mainnet). " +
+      "Returns the MCP endpoint, ENS name (keeperhub.eth), supported services, and registry address. " +
+      "Use this to discover KeeperHub's on-chain identity and MCP connection details. " +
+      "NOTE: This does NOT register YOUR agent — it reads KeeperHub's existing registry card. " +
+      "To register your own agent on-chain, use keeperhub_contract_call with the ERC-8004 " +
+      "registry contract (0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) on a funded wallet.",
+    schema: z.object({}),
+    func: async () => {
       try {
-        const registration = await kh.agent.ensureRegistered({
-          name,
-          description,
-          capabilities,
-        });
-        const r = registration as Record<string, unknown>;
+        const raw = await (kh as unknown as {
+          _http: { request: (m: string, p: string) => Promise<unknown> }
+        })._http.request("GET", "/api/agent-registry");
+        const r = raw as Record<string, unknown>;
+        const registrations = (r["registrations"] as Array<Record<string, unknown>>) ?? [];
+        const services = (r["services"] as Array<Record<string, unknown>>) ?? [];
+        const mcpEndpoint = services.find(s => s["name"] === "mcp")?.["endpoint"];
+        const ensName = services.find(s => s["name"] === "ens")?.["endpoint"];
+        const latest = registrations[registrations.length - 1];
+
         return JSON.stringify({
           ok: true,
-          agent_id: r["id"],
-          name: r["name"],
-          token_id: r["tokenId"],
-          registry_address: r["registryAddress"],
-          tx_hash: r["transactionHash"],
-          summary: `Agent registered on-chain. Token ID: ${r["tokenId"]}. Registry: ${r["registryAddress"]}`,
+          platform: r["name"],
+          description: r["description"],
+          ens: ensName,
+          mcp_endpoint: mcpEndpoint,
+          agent_id: latest?.["agentId"],
+          registry_address: latest?.["agentRegistry"],
+          x402_support: r["x402Support"],
+          note: "This is KeeperHub's platform identity (ERC-8004). To register YOUR OWN agent on-chain, call the registry contract at 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432 with a funded wallet.",
         });
       } catch (err) {
         return JSON.stringify({ ok: false, error: String(err) });
