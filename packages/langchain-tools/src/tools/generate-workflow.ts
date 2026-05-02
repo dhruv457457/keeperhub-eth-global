@@ -9,8 +9,13 @@ const GenerateWorkflowSchema = z.object({
     .trim()
     .describe(
       "Natural language description of what the workflow should do. " +
-        "Be specific: include the action, token/protocol, network, and frequency if relevant. " +
-        "Example: 'Compound USDC rewards on Aave every Monday at 9am UTC'"
+        "Be VERY specific — include: action, protocol, exact token contract addresses (NOT symbols), " +
+        "chain ID, amount in wei or smallest unit, and wallet address. " +
+        "Using real addresses prevents placeholder values in the generated workflow. " +
+        "Example: 'Swap 0.001 ETH (1000000000000000 wei) to USDC on Uniswap V3 on Sepolia (chain 11155111). " +
+        "tokenIn=0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14 (WETH), " +
+        "tokenOut=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238 (USDC), " +
+        "recipient=0x554b87f23a9B01bA67B36Ca6B9e46aC5697C58E5'"
     ),
   execute: z
     .boolean()
@@ -51,8 +56,10 @@ export function createGenerateWorkflowTool(
       "Use this for ANY DeFi action (Aave supply/borrow, Uniswap swap, Lido stake, etc.) — " +
       "especially when protocol_action fails with a _protocolMeta error. " +
       "Set execute=true to generate AND run immediately. " +
-      "Always include: action, protocol, network/chain ID, amount, and wallet address in the prompt. " +
-      "Example: prompt='Supply 0.001 ETH to Aave V3 on Sepolia (chain 11155111) for wallet 0x554b...', execute=true.",
+      "CRITICAL: Always use actual 0x token addresses in prompt (not symbols like ETH/USDC) to prevent placeholder values. " +
+      "First call keeperhub_wallet_balance to get the user's wallet address, then include it in the prompt. " +
+      "Example: prompt='Supply 1000000000000000 wei of WETH (0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14) " +
+      "to Aave V3 on Sepolia (chain 11155111), onBehalfOf=0x554b...wallet...', execute=true.",
     schema: GenerateWorkflowSchema,
     func: async ({ prompt, execute, executionInput, context }) => {
       try {
