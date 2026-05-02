@@ -39,6 +39,7 @@ import { createProvisionWalletTool } from "./tools/provision-wallet.js";
 import { createRegisterAgentTool } from "./tools/register-agent.js";
 import { createTransferTool } from "./tools/transfer.js";
 import { createWalletBalanceTool } from "./tools/wallet-balance.js";
+import { createTokenAddressTool } from "./tools/token-address.js";
 import {
   createWorkflowGoLiveTool,
   createWorkflowMigrateTool,
@@ -76,7 +77,8 @@ export type ToolKey =
   | "workflow_publish"
   | "ens_resolve"
   | "ens_text_record"
-  | "ens_lookup";
+  | "ens_lookup"
+  | "token_address";
 
 // Testnet chain IDs (as strings) — matches Python toolkit
 const TESTNET_CHAIN_IDS = new Set([
@@ -163,6 +165,8 @@ const ALL_TOOLS: ToolKey[] = [
   "ens_resolve",
   "ens_text_record",
   "ens_lookup",
+  // Token address lookup (resolve symbol → contract address before workflow gen)
+  "token_address",
 ];
 
 /**
@@ -335,6 +339,8 @@ export class KeeperHubToolkit {
       ["ens_resolve", () => createEnsResolveTool(this.kh)],
       ["ens_text_record", () => createEnsTextRecordTool(this.kh)],
       ["ens_lookup", () => createEnsLookupTool(this.kh)],
+      // Token address lookup — resolve symbol → 0x address before workflow gen
+      ["token_address", () => createTokenAddressTool()],
     ];
 
     return all

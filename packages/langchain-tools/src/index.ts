@@ -48,6 +48,8 @@ export { createFetchAbiTool } from "./tools/fetch-abi.js";
 export { createGenerateWorkflowTool } from "./tools/generate-workflow.js";
 // Chain & contract tools
 export { createListChainsTool } from "./tools/list-chains.js";
+// Token address lookup (resolve symbol → 0x address before generating workflows)
+export { createTokenAddressTool } from "./tools/token-address.js";
 // Workflow tools
 export { createListWorkflowsTool } from "./tools/list-workflows.js";
 export { createMathAggregateTool } from "./tools/math-aggregate.js";
