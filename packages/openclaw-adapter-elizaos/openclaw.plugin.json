@@ -30,6 +30,6 @@
         "description": "Allowlist of chain IDs for writes."
       }
     },
-    "required": ["apiKey"]
+    "required": []
   }
 }

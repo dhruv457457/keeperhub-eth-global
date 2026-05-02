@@ -35,6 +35,6 @@
         "description": "Which LangChain tools to expose. Defaults to all 24 tools."
       }
     },
-    "required": ["apiKey"]
+    "required": []
   }
 }
