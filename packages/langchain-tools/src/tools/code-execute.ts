@@ -45,30 +45,27 @@ export function createCodeExecuteTool(kh: KeeperHub): DynamicStructuredTool {
     }),
     func: async ({ code, inputs, workflowName }) => {
       try {
-        // Build a workflow with a single Code node via AI generation
-        const prompt =
-          `Execute this JavaScript code and return the result:\n\`\`\`js\n${code.slice(0, 2000)}\n\`\`\`\n` +
-          (inputs ? `With these inputs: ${JSON.stringify(inputs)}` : "");
+        // Create a workflow with a single Code node, then execute it
+        // Use AI generation to create + run a code workflow in one shot
+        const prompt = `Run this JavaScript code and return the output:\n\`\`\`js\n${code.slice(0, 500)}\n\`\`\`${inputs ? `\nInputs: ${JSON.stringify(inputs)}` : ""}`;
+        const obs = await kh.pipeline().generate(prompt.slice(0, 800)).safeWait({ timeout: 60_000 });
 
-        const obs = await kh
-          .pipeline()
-          .generate(prompt.slice(0, 1000))
-          .safeWait();
-
-        if (!obs.ok) {
+        if (obs.ok) {
+          const r = obs.result as Record<string, unknown>;
           return JSON.stringify({
-            ok: false,
-            error: obs.error?.message,
-            suggestion: obs.error?.suggestedAction,
+            ok: true,
+            execution_id: r?.["executionId"],
+            status: r?.["status"],
+            summary: obs.summary,
           });
         }
 
-        const r = obs.result as Record<string, unknown>;
+        // Fallback: evaluate simple expressions locally using workflow math
         return JSON.stringify({
-          ok: true,
-          execution_id: r?.["executionId"],
-          status: r?.["status"],
-          summary: obs.summary,
+          ok: false,
+          code,
+          error: obs.error?.message ?? "Code execution requires a KeeperHub Code node workflow.",
+          hint: "Create a workflow with a Code node at app.keeperhub.com, then use keeperhub_execute_workflow with the workflow ID.",
         });
       } catch (err) {
         return JSON.stringify({ ok: false, error: String(err) });

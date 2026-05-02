@@ -54,6 +54,107 @@ npm install @ethglobal-openagent/langchain-keeperhub
 npm install @keeperhub/elizaos
 ```
 
+## Set Up Your Agent in 5 Minutes
+
+Two env vars needed for all frameworks:
+
+```bash
+export KEEPERHUB_API_KEY=kh_...      # app.keeperhub.com → Settings → API Keys
+export OPENROUTER_API_KEY=sk-or-...  # openrouter.ai — free models available
+```
+
+### Python LangChain
+```bash
+pip install keeperhub-langchain langchain-openai langgraph
+```
+```python
+from langchain_keeperhub import KeeperHubToolkit
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
+import asyncio, os
+
+async def main():
+    toolkit = KeeperHubToolkit(testnet_only=True)
+    agent = create_react_agent(
+        model=ChatOpenAI(
+            model="anthropic/claude-haiku-4-5",
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        ),
+        tools=toolkit.get_tools(),
+    )
+    result = await agent.ainvoke({"messages": [("user", "What chains does KeeperHub support?")]})
+    print(result["messages"][-1].content)
+
+asyncio.run(main())
+# → copy quickstart.py from packages/langchain-keeperhub/quickstart.py
+```
+
+### TypeScript LangChain
+```bash
+npm install @ethglobal-openagent/langchain-keeperhub @langchain/openai @langchain/langgraph tsx
+```
+```typescript
+import { KeeperHubToolkit } from "@ethglobal-openagent/langchain-keeperhub";
+import { ChatOpenAI } from "@langchain/openai";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+
+const toolkit = new KeeperHubToolkit({ apiKey: process.env.KEEPERHUB_API_KEY!, testnetOnly: true });
+const agent = createReactAgent({
+  llm: new ChatOpenAI({
+    model: "anthropic/claude-haiku-4-5",
+    configuration: { baseURL: "https://openrouter.ai/api/v1", apiKey: process.env.OPENROUTER_API_KEY },
+  }),
+  tools: toolkit.getTools(),
+});
+const result = await agent.invoke({ messages: [{ role: "user", content: "Resolve vitalik.eth" }] });
+console.log(result.messages.at(-1)?.content);
+// → copy quickstart.ts from packages/langchain-tools/quickstart.ts
+```
+
+### ElizaOS
+```bash
+npm install @ethglobal-openagent/elizaos-keeperhub @elizaos/core
+```
+```typescript
+import { AgentRuntime, ModelProviderName } from "@elizaos/core";
+import { createKeeperHubPlugin } from "@ethglobal-openagent/elizaos-keeperhub";
+
+const runtime = new AgentRuntime({
+  modelProvider: ModelProviderName.OPENAI,
+  character: {
+    name: "DeFi Agent",
+    bio: ["I execute onchain operations via KeeperHub."],
+    plugins: [createKeeperHubPlugin({ apiKey: process.env.KEEPERHUB_API_KEY!, testnetOnly: true })],
+  },
+});
+// User: "Send 0.01 ETH to vitalik.eth" → KEEPERHUB_TRANSFER fires automatically
+// → copy quickstart.ts from packages/elizaos-plugin/quickstart.ts
+```
+
+### OpenClaw (no code needed)
+```bash
+npm install -g openclaw
+openclaw plugin install @ethglobal-openagent/openclaw-keeperhub
+openclaw
+# > Check my wallet balance  →  real balance from KeeperHub API
+# > Supply 100 USDC to Aave →  executes via aave-v3/supply
+```
+
+### Core SDK
+```bash
+npm install keeperhub-sdk tsx
+```
+```typescript
+import { KeeperHub } from "keeperhub-sdk";
+const kh = new KeeperHub({ apiKey: process.env.KEEPERHUB_API_KEY! });
+const wallet = await kh.wallet.getWallet();
+const chains = await kh.chains.getChains();
+// → copy quickstart.ts from packages/sdk/quickstart.ts
+```
+
+---
+
 ## When To Use
 
 - User wants to transfer ETH or ERC-20 tokens to an address or ENS name

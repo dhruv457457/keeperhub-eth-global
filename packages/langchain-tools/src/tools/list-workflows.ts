@@ -12,7 +12,7 @@ const sanitize = (s: string) => s.replace(/[`[\]{}\\]/g, "").slice(0, 80);
 
 export function createListWorkflowsTool(kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
-    name: "list_keeperhub_workflows",
+    name: "keeperhub_list_workflows",
     description:
       "List all available KeeperHub onchain automation workflows. " +
       "Use this to discover what automations exist before executing one. " +

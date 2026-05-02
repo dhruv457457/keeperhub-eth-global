@@ -1,11 +1,13 @@
 {
   "name": "@ethglobal-openagent/openclaw-keeperhub",
-  "version": "1.8.0",
+  "version": "1.8.2",
   "description": "KeeperHub LangChain tools wrapped as native OpenClaw tools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "openclaw": {
-    "extensions": ["./dist/index.js"]
+    "extensions": [
+      "./dist/index.js"
+    ]
   },
   "files": [
     "dist",
@@ -20,6 +22,7 @@
   "devDependencies": {
     "@ethglobal-openagent/langchain-keeperhub": ">=0.1.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "zod-to-json-schema": "^3.25.2"
   }
 }

@@ -8,7 +8,7 @@ import { z } from "zod";
  */
 export function createTransferTool(kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
-    name: "keeperhub_transfer",
+    name: "keeperhub_transfer_funds",
     description:
       "Transfer native tokens (ETH, MATIC, etc.) or ERC-20 tokens to an address. " +
       "Uses KeeperHub's managed wallet with retry logic and gas optimization. " +

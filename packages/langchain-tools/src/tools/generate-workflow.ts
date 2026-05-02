@@ -45,48 +45,95 @@ export function createGenerateWorkflowTool(
   kh: KeeperHub
 ): DynamicStructuredTool {
   return new DynamicStructuredTool({
-    name: "generate_keeperhub_workflow",
+    name: "keeperhub_generate_workflow",
     description:
-      "Generate a new KeeperHub onchain automation workflow from a natural-language description using AI. " +
-      "Use this when the user wants to create a new automation for DeFi, token management, " +
-      "scheduled transactions, or any onchain task. " +
-      "Optionally set execute=true to immediately run the workflow after generating it.",
+      "Generate and optionally execute a KeeperHub onchain workflow from plain English. " +
+      "Use this for ANY DeFi action (Aave supply/borrow, Uniswap swap, Lido stake, etc.) — " +
+      "especially when protocol_action fails with a _protocolMeta error. " +
+      "Set execute=true to generate AND run immediately. " +
+      "Always include: action, protocol, network/chain ID, amount, and wallet address in the prompt. " +
+      "Example: prompt='Supply 0.001 ETH to Aave V3 on Sepolia (chain 11155111) for wallet 0x554b...', execute=true.",
     schema: GenerateWorkflowSchema,
     func: async ({ prompt, execute, executionInput, context }) => {
       try {
-        if (execute) {
-          const result = await kh
-            .pipeline()
-            .generate(prompt, { context })
-            .withInput(executionInput ?? {})
-            .wait({ timeout: 180_000 });
+        // Call /api/ai/generate directly and assemble workflow from operation events
+        const kh_ = kh as unknown as {
+          _http: {
+            requestResponse: (method: string, path: string, opts: object) => Promise<Response>;
+          };
+        };
 
+        const response = await kh_._http.requestResponse("POST", "/api/ai/generate", {
+          body: { prompt: context ? `${prompt}\nContext: ${context}` : prompt },
+        });
+
+        if (!response.body) throw new Error("Empty response from AI generate endpoint");
+
+        // Parse NDJSON stream — assemble workflow from operation events
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let name = prompt.slice(0, 60);
+        let description = "";
+        const nodes: unknown[] = [];
+        const edges: unknown[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const event = JSON.parse(line) as { type: string; operation?: Record<string, unknown> };
+              if (event.type === "operation" && event.operation) {
+                const op = event.operation;
+                if (op["op"] === "setName") name = String(op["name"] ?? name);
+                else if (op["op"] === "setDescription") description = String(op["description"] ?? "");
+                else if (op["op"] === "addNode") nodes.push(op["node"]);
+                else if (op["op"] === "addEdge") edges.push(op["edge"]);
+              }
+            } catch { /* skip malformed lines */ }
+          }
+        }
+        reader.releaseLock();
+
+        if (nodes.length === 0) throw new Error("AI did not generate any workflow nodes. Try a more specific prompt describing a scheduled or triggered automation.");
+
+        // Save the assembled workflow
+        const saved = await kh.workflows.create({
+          name,
+          description,
+          nodes: nodes as Parameters<typeof kh.workflows.create>[0]["nodes"],
+          edges: edges as Parameters<typeof kh.workflows.create>[0]["edges"],
+        });
+
+        if (!execute) {
           return JSON.stringify({
             ok: true,
             generated: true,
-            executed: true,
-            executionId: result.executionId ?? null,
-            status: result.status,
+            executed: false,
+            workflowId: saved.id,
+            name: saved.name,
+            description: saved.description,
+            nodeCount: nodes.length,
+            hint: `Workflow saved! Execute it with keeperhub_execute_workflow using workflowId="${saved.id}"`,
           });
         }
 
-        // Generate and save only — generateSpec() returns an unsaved spec, then we persist it
-        const generated = await kh.workflows.generateSpec({ prompt, context });
-        const saved = await kh.workflows.create({
-          name: generated.name,
-          description: generated.description,
-          nodes: generated.nodes,
-          edges: generated.edges,
-        });
-
+        // Execute immediately
+        const handle = await kh.workflows.execute(saved.id, executionInput ?? {});
         return JSON.stringify({
           ok: true,
           generated: true,
-          executed: false,
+          executed: true,
           workflowId: saved.id,
+          executionId: handle.id,
           name: saved.name,
-          description: saved.description,
-          hint: `To execute, call execute_keeperhub_workflow with workflowId="${saved.id}"`,
+          status: "running",
+          hint: `Check status with keeperhub_check_execution using executionId="${handle.id}"`,
         });
       } catch (err) {
         return JSON.stringify({

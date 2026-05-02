@@ -10,10 +10,11 @@ export function createWalletBalanceTool(kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_wallet_balance",
     description:
-      "Check the KeeperHub managed wallet balance across all chains. " +
-      "Returns token balances including USDC (for x402 payments on Base) " +
-      "and USDC.e (for MPP payments on Tempo). " +
-      "Use before pay_and_run to confirm sufficient funds.",
+      "Check the KeeperHub managed wallet balance and get the wallet address. " +
+      "ALWAYS use this first when the user asks for their wallet address, balance, or funds. " +
+      "Returns wallet_address (the existing wallet), token balances, " +
+      "USDC (for x402 payments on Base) and USDC.e (for MPP payments on Tempo). " +
+      "Do NOT use keeperhub_provision_wallet unless this returns no wallet_address.",
     schema: z.object({
       chainId: z
         .number()

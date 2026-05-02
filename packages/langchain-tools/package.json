@@ -1,7 +1,7 @@
 {
   "name": "@ethglobal-openagent/langchain-keeperhub",
-  "version": "0.3.0",
-  "description": "KeeperHub tools for LangChain \u00e2\u20ac\u201d use onchain workflow automation inside any LangChain agent",
+  "version": "0.3.3",
+  "description": "KeeperHub tools for LangChain â€” use onchain workflow automation inside any LangChain agent",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {

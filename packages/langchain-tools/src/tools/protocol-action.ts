@@ -17,10 +17,14 @@ export function createProtocolActionTool(kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: "keeperhub_protocol_action",
     description:
-      "Execute a DeFi protocol action directly — Aave, Uniswap, Lido, Curve, Compound, Morpho, Yearn, " +
+      "Execute a DeFi protocol action — Aave, Uniswap, Lido, Curve, Compound, Morpho, Yearn, " +
       "Aerodrome, CowSwap, Rocket Pool, Pendle, Sky, Spark, Ethena, and more. " +
       "Format: actionType='protocol/action' e.g. 'aave-v3/supply', 'uniswap/swap-exact-input', 'lido/wrap'. " +
-      "Returns execution_id for write actions. Use keeperhub_list_protocols to discover available actions.",
+      "IMPORTANT: If this returns a _protocolMeta error for write actions, " +
+      "IMMEDIATELY fall back to the workflow generation tool " +
+      "(keeperhub_generate_workflow or eliza_keeperhub_generate_workflow) with execute=true — " +
+      "describe the same action in plain English as the prompt. " +
+      "READ actions (Chainlink price, balanceOf) always work directly.",
     schema: z.object({
       actionType: z
         .string()

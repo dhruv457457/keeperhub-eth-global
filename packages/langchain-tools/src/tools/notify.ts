@@ -73,44 +73,20 @@ export function createNotifyTool(kh: KeeperHub): DynamicStructuredTool {
           });
         }
 
-        // Path 2: Auto-generate + run a one-shot notification workflow
-        const channelLabels: Record<string, string> = {
-          discord: "Discord channel",
-          telegram: "Telegram channel",
-          email: "email via SendGrid",
-          webhook: webhookUrl
-            ? `webhook at ${webhookUrl}`
-            : "configured webhook",
-        };
-
-        const prompt = [
-          `Send a notification to ${channelLabels[channel]}`,
-          `Message: "${message.slice(0, 500)}"`,
-          subject ? `Subject: "${subject}"` : null,
-          webhookUrl ? `Webhook URL: ${webhookUrl}` : null,
-          `Use the configured ${channel} integration in KeeperHub.`,
-        ]
-          .filter(Boolean)
-          .join(". ");
-
-        const obs = await kh.pipeline().generate(prompt).safeWait();
-
-        if (!obs.ok) {
-          return JSON.stringify({
-            ok: false,
-            summary: obs.summary,
-            error: obs.error?.message,
-            hint: `Set up a ${channel} integration at app.keeperhub.com → Integrations, then create a notification workflow.`,
-          });
-        }
-
-        const r = obs.result as Record<string, unknown>;
+        // Path 2: No workflowId provided — guide user to set one up
         return JSON.stringify({
-          ok: true,
-          summary: `${channel} notification sent via auto-generated workflow.`,
-          execution_id: r?.["executionId"],
+          ok: false,
+          error: `No notification workflowId provided.`,
+          hint: [
+            `To send a ${channel} notification:`,
+            `1. Go to app.keeperhub.com → Workflows → New Workflow`,
+            `2. Add a ${channel} notification step`,
+            `3. Save and copy the workflow ID (wf_xxx)`,
+            `4. Call this tool again with workflowId="wf_xxx" and message="${message.slice(0, 50)}"`,
+          ].join(" "),
           channel,
-          message: message.slice(0, 100),
+          message_preview: message.slice(0, 100),
+          execution_id: null,
         });
       } catch (err) {
         return JSON.stringify({ ok: false, error: String(err) });

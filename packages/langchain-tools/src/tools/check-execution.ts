@@ -6,12 +6,10 @@ import { z } from "zod";
 const CheckExecutionSchema = z.object({
   executionId: z
     .string()
-    .regex(
-      /^(exec_[a-zA-Z0-9_-]{1,64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
-      "Invalid execution ID — expected exec_xxx or a UUID"
-    )
+    .min(4)
+    .max(80)
     .describe(
-      "The KeeperHub execution ID to check (e.g., exec_abc123 or UUID)"
+      "The KeeperHub execution ID to check. Example: h2e0glgki84cvrpszbewj"
     ),
   includeLogs: z
     .boolean()
@@ -22,7 +20,7 @@ const CheckExecutionSchema = z.object({
 
 export function createCheckExecutionTool(kh: KeeperHub): DynamicStructuredTool {
   return new DynamicStructuredTool({
-    name: "check_keeperhub_execution",
+    name: "keeperhub_check_execution",
     description:
       "Check the status and progress of a KeeperHub workflow execution. " +
       "Use this to monitor a running execution, diagnose failures, or confirm completion. " +

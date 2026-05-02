@@ -12,11 +12,10 @@ export function createProvisionWalletTool(
   return new DynamicStructuredTool({
     name: "keeperhub_provision_wallet",
     description:
-      "Provision a new KeeperHub agentic wallet for this agent. " +
-      "Server-side Turnkey custody — no private key lands on disk. " +
-      "Returns walletAddress and subOrgId. Fund with USDC on Base (x402) " +
-      "or USDC.e on Tempo (MPP) to enable paid workflow calls. " +
-      "Only call this once — save the wallet address for future use.",
+      "WARNING: Creates a BRAND NEW wallet — only use when explicitly asked to create a new wallet. " +
+      "Do NOT use this to check wallet address or balance — use keeperhub_wallet_balance instead. " +
+      "Provisions a new Turnkey-backed agentic wallet with no private key on disk. " +
+      "Returns walletAddress and subOrgId for the newly created wallet.",
     schema: z.object({
       label: z
         .string()

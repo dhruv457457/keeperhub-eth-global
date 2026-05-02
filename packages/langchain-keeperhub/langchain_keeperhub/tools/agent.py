@@ -106,12 +106,11 @@ class WalletBalanceTool(BaseTool):
 
     name: str = "keeperhub_wallet_balance"
     description: str = (
-        "Check the KeeperHub managed wallet balance across all chains. "
-        "Returns token balances including USDC (for x402 on Base) "
-        "and USDC.e (for MPP on Tempo). "
-        "Use before keeperhub_pay_and_run to confirm sufficient funds. "
-        "Base USDC address: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. "
-        "Tempo USDC.e address: 0x20C000000000000000000000B9537D11c60E8b50."
+        "Check the KeeperHub managed wallet balance and get the wallet address. "
+        "ALWAYS use this first when the user asks for their wallet address, balance, or funds. "
+        "Returns wallet_address (existing wallet), token balances, "
+        "USDC (for x402 on Base) and USDC.e (for MPP on Tempo). "
+        "Do NOT use keeperhub_provision_wallet unless this returns no wallet_address."
     )
     args_schema: type[BaseModel] = _WalletBalanceInput
     client: object = Field(exclude=True)
@@ -186,11 +185,10 @@ class ProvisionWalletTool(BaseTool):
 
     name: str = "keeperhub_provision_wallet"
     description: str = (
-        "Provision a new KeeperHub agentic wallet for this agent. "
-        "Server-side Turnkey custody — no private key lands on disk. "
-        "Returns wallet_address and sub_org_id. "
-        "Fund with USDC on Base (x402) or USDC.e on Tempo (MPP) to enable paid calls. "
-        "Only call this once — save the wallet address for future use."
+        "WARNING: Creates a BRAND NEW wallet — only use when explicitly asked to create a new wallet. "
+        "Do NOT use this to check wallet address or balance — use keeperhub_wallet_balance instead. "
+        "Provisions a new Turnkey-backed agentic wallet with no private key on disk. "
+        "Returns wallet_address and sub_org_id for the newly created wallet."
     )
     args_schema: type[BaseModel] = _ProvisionWalletInput
     client: object = Field(exclude=True)

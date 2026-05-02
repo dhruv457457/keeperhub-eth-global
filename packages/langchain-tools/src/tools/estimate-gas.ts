@@ -24,11 +24,24 @@ export function createEstimateGasTool(kh: KeeperHub): DynamicStructuredTool {
     }),
     func: async ({ network, contract, function: fn, args }) => {
       try {
-        const estimate = await kh.web3.estimateGas({
-          network,
-          contract,
-          function: fn,
-          args: args as unknown[],
+        // Fetch ABI first (required for gas estimation)
+        let abi: unknown[] = [];
+        try {
+          abi = await kh.web3.getAbi(contract, Number(network));
+        } catch {
+          // ABI fetch failed — try without it
+        }
+        const kh_ = kh as unknown as { _http: { request: (m: string, p: string, o: object) => Promise<unknown> } };
+        const estimate = await kh_._http.request("POST", "/api/gas/estimate", {
+          body: {
+            chainId: network,
+            actionSlug: "write-contract",
+            contractAddress: contract,
+            ...(abi.length ? { abi: JSON.stringify(abi) } : {}),
+            abiFunction: fn,
+            functionArgs: args ? JSON.stringify(args) : undefined,
+            config: { network, contractAddress: contract },
+          },
         });
 
         const e = estimate as Record<string, unknown>;

@@ -77,33 +77,45 @@ export function createChainlinkPriceFeedTool(
   return new DynamicStructuredTool({
     name: "keeperhub_chainlink_price",
     description:
-      "Get the latest price from a Chainlink oracle price feed. " +
-      "Common feeds: eth-usd, btc-usd, link-usd, usdc-usd, matic-usd, avax-usd. " +
-      "Returns price, decimals, and timestamp from the on-chain aggregator.",
+      "Get the latest price from a Chainlink oracle price feed using a contract address. " +
+      "Common ETH mainnet feeds: ETH/USD=0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419, " +
+      "BTC/USD=0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88b. " +
+      "Base mainnet: ETH/USD=0x71041dddad3595F9CEd3dCCFBe3D1F4b0a16Bb70. " +
+      "Returns price, roundId, and timestamp from the on-chain aggregator.",
     schema: z.object({
-      feed: z
+      contractAddress: z
         .string()
-        .describe(
-          "Price feed slug e.g. 'eth-usd', 'btc-usd', 'link-usd', 'matic-usd'. " +
-            "Format: {asset}-{quote} in lowercase."
-        ),
+        .describe("Chainlink price feed contract address (0x...). E.g. ETH/USD on mainnet: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"),
+      network: z
+        .string()
+        .default("1")
+        .describe("Chain ID. Ethereum=1, Base=8453, Arbitrum=42161. Default: 1 (Ethereum mainnet)"),
     }),
-    func: async ({ feed }) => {
+    func: async ({ contractAddress, network }) => {
       try {
-        const result = await kh.protocols.execute(
-          `chainlink/${feed}-latest-round-data`,
-          {}
-        );
-        const r = result as Record<string, unknown>;
+        // Call latestRoundData() directly on the Chainlink aggregator contract
+        const net = network ?? "1";
+        const result = await kh.web3.read({
+          network: net,
+          contract: contractAddress,
+          function: "latestRoundData",
+          args: [],
+        });
+        const r = result as Record<string, unknown> ?? {};
+        // latestRoundData returns (roundId, answer, startedAt, updatedAt, answeredInRound)
+        const answer = r["answer"] ?? r["1"] ?? r["result"];
         return JSON.stringify({
           ok: true,
-          feed,
-          price: r["result"] ?? r["answer"],
-          result: r["result"],
-          execution_id: r["executionId"],
+          contract: contractAddress,
+          network: net,
+          raw_answer: answer,
+          note: "Divide raw_answer by 10^8 for USD price (Chainlink uses 8 decimals for USD pairs)",
+          price_usd: answer ? (Number(answer) / 1e8).toFixed(2) : null,
+          round_id: r["roundId"] ?? r["0"],
+          updated_at: r["updatedAt"] ?? r["3"],
         });
       } catch (err) {
-        return JSON.stringify({ ok: false, feed, error: String(err) });
+        return JSON.stringify({ ok: false, contractAddress, error: String(err) });
       }
     },
   });

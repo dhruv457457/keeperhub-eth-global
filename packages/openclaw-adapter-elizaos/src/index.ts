@@ -11,6 +11,7 @@
  */
 
 import { KeeperHubToolkit } from "@ethglobal-openagent/langchain-keeperhub";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -92,11 +93,21 @@ export function register(api: PluginApi): void {
       name: toolName,
       label,
       description: `[ElizaOS] ${lcTool.description}`,
-      parameters: {
-        type: "object",
-        additionalProperties: true,
-        description: "Parameters for this KeeperHub action",
-      },
+      parameters: (() => {
+        try {
+          const s = lcTool.schema;
+          if (s) {
+            const schema = zodToJsonSchema(s as Parameters<typeof zodToJsonSchema>[0], {
+              target: "jsonSchema7",
+              $refStrategy: "none",
+            }) as Record<string, unknown>;
+            // Remove $schema — Claude requires clean schema without meta fields
+            delete schema["$schema"];
+            return schema;
+          }
+        } catch {}
+        return { type: "object", additionalProperties: true };
+      })(),
       async execute(_toolCallId: string, params: Record<string, unknown>) {
         try {
           const raw = await lcTool.invoke(params);

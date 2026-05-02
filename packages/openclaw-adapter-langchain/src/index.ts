@@ -9,6 +9,7 @@
  */
 
 import { KeeperHubToolkit } from "@ethglobal-openagent/langchain-keeperhub";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 // ─── Config interface matching openclaw.plugin.json schema ───────────────────
 
@@ -67,12 +68,20 @@ export function register(api: PluginApi): void {
       label: lcTool.name.replace(/keeperhub_/g, "").replace(/_/g, " "),
       description: lcTool.description,
 
-      // Simple open parameters — OpenClaw passes whatever the LLM decides
-      parameters: {
-        type: "object",
-        additionalProperties: true,
-        description: "Parameters for this KeeperHub tool",
-      },
+      parameters: (() => {
+        try {
+          const s = lcTool.schema;
+          if (s) {
+            const schema = zodToJsonSchema(s as Parameters<typeof zodToJsonSchema>[0], {
+              target: "jsonSchema7",
+              $refStrategy: "none",
+            }) as Record<string, unknown>;
+            delete schema["$schema"];
+            return schema;
+          }
+        } catch {}
+        return { type: "object", additionalProperties: true };
+      })(),
 
       async execute(_toolCallId: string, params: Record<string, unknown>) {
         try {

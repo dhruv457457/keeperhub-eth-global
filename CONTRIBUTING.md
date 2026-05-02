@@ -1,214 +1,309 @@
-# Contributing to KeeperHub
+# Contributing to the KeeperHub Agent SDK
 
-Internal contribution guide for the KeeperHub workflow automation platform.
+This guide shows how to add a new KeeperHub API endpoint as a tool across all three framework packages — Python LangChain, TypeScript LangChain, and ElizaOS. Each package follows the same pattern so adding one tool means adding it three times in roughly the same shape.
 
-## Table of Contents
+---
 
-- [Development Setup](#development-setup)
-- [Development Workflow](#development-workflow)
-- [Pull Request Process](#pull-request-process)
-- [Plugin Development Guide](#plugin-development-guide)
-- [Testing Guidelines](#testing-guidelines)
+## Architecture Overview
 
-## Development Setup
+```
+KeeperHub REST API
+       │
+       ▼
+keeperhub-sdk          (TypeScript — direct API client, all packages depend on this)
+       │
+       ├── packages/langchain-keeperhub/        (Python LangChain — 24 tools)
+       ├── packages/langchain-tools/            (TypeScript LangChain — 27 tools)
+       ├── packages/elizaos-plugin/             (ElizaOS — 19 actions)
+       ├── packages/openclaw-adapter-langchain/ (OpenClaw wraps langchain-tools)
+       └── packages/openclaw-adapter-elizaos/   (OpenClaw wraps elizaos-plugin)
+```
 
-### Prerequisites
+The OpenClaw adapters automatically pick up any new tools added to `langchain-tools` or `elizaos-plugin` — no changes needed there.
 
-- Node.js 24+ (see `.node-version`)
-- pnpm (package manager)
-- PostgreSQL 16+
-- Docker and Docker Compose
+---
 
-### Environment Variables
+## Adding a New Tool — Step by Step
 
-Copy `.env.example` to `.env` and fill in the required values:
+### Example: `keeperhub_get_earnings`
+
+Suppose KeeperHub adds a new endpoint:
+```
+GET /api/user/earnings?chainId=<id>
+Returns: { total_earned, by_protocol: [...] }
+```
+
+---
+
+## 1. Python LangChain (`packages/langchain-keeperhub/`)
+
+Create `langchain_keeperhub/tools/earnings.py`:
+
+```python
+import json
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Optional
+from ..client import KeeperHubClient
+
+
+class _EarningsInput(BaseModel):
+    chain_id: Optional[str] = Field(
+        default=None,
+        description="Filter by chain ID. Omit for all chains."
+    )
+
+
+class GetEarningsTool(BaseTool):
+    name: str = "keeperhub_get_earnings"
+    description: str = (
+        "Get total earnings from KeeperHub managed wallet across all protocols. "
+        "Returns earnings by protocol (Aave, Uniswap, etc.) and total earned. "
+        "Use when the user asks how much they have earned or what yield was generated."
+    )
+    args_schema: type[BaseModel] = _EarningsInput
+    client: KeeperHubClient
+
+    async def _arun(self, chain_id: str | None = None) -> str:
+        try:
+            params = {}
+            if chain_id:
+                params["chainId"] = chain_id
+            data = await self.client.get("/api/user/earnings", params=params)
+            return json.dumps({
+                "ok": True,
+                "total_earned": data.get("total_earned"),
+                "by_protocol": data.get("by_protocol", []),
+            })
+        except Exception as err:
+            return json.dumps({"ok": False, "error": str(err)})
+```
+
+Register in `langchain_keeperhub/tools/__init__.py`:
+```python
+from .earnings import GetEarningsTool
+```
+
+Add to `langchain_keeperhub/toolkit.py` inside `_build_native_tools()`:
+```python
+GetEarningsTool(client=self.client),
+```
+
+---
+
+## 2. TypeScript LangChain (`packages/langchain-tools/`)
+
+Create `src/tools/earnings.ts`:
+
+```typescript
+import { DynamicStructuredTool } from "@langchain/core/tools";
+import type { KeeperHub } from "keeperhub-sdk";
+import { z } from "zod";
+
+export function createGetEarningsTool(kh: KeeperHub): DynamicStructuredTool {
+  return new DynamicStructuredTool({
+    name: "keeperhub_get_earnings",
+    description:
+      "Get total earnings from KeeperHub managed wallet across all protocols. " +
+      "Returns earnings by protocol (Aave, Uniswap, etc.) and total earned. " +
+      "Use when the user asks how much they have earned or what yield was generated.",
+    schema: z.object({
+      chainId: z
+        .number()
+        .optional()
+        .describe("Filter by chain ID. Omit for all chains."),
+    }),
+    func: async ({ chainId }) => {
+      try {
+        const data = await kh.earnings.get(chainId ? String(chainId) : undefined);
+        return JSON.stringify({
+          ok: true,
+          total_earned: data.totalEarned,
+          by_protocol: data.byProtocol ?? [],
+        });
+      } catch (err) {
+        return JSON.stringify({
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+  });
+}
+```
+
+Register in `src/tools/index.ts`:
+```typescript
+export { createGetEarningsTool } from "./earnings.js";
+```
+
+Add to `src/toolkit.ts` inside `getTools()`:
+```typescript
+createGetEarningsTool(this.kh),
+```
+
+---
+
+## 3. ElizaOS (`packages/elizaos-plugin/`)
+
+Create `src/actions/get-earnings.ts`:
+
+```typescript
+import type { Action, HandlerCallback, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type { KeeperHub } from "keeperhub-sdk";
+
+export function createGetEarningsAction(kh: KeeperHub): Action {
+  return {
+    name: "KEEPERHUB_GET_EARNINGS",
+    similes: ["GET_EARNINGS", "MY_EARNINGS", "YIELD_EARNED", "HOW_MUCH_EARNED"],
+    description:
+      "Get total earnings from KeeperHub wallet across all protocols. " +
+      "Use when user asks how much they earned, what yield was generated, or wants a profit summary.",
+
+    validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+      const text = (message.content?.text ?? "").toLowerCase();
+      return text.includes("earn") || text.includes("yield") || text.includes("profit");
+    },
+
+    handler: async (
+      _runtime: IAgentRuntime,
+      _message: Memory,
+      _state: State | undefined,
+      _options: Record<string, unknown> | undefined,
+      callback: HandlerCallback | undefined
+    ): Promise<boolean> => {
+      try {
+        const data = await kh.earnings.get();
+        const lines = [
+          `Total Earned: ${data.totalEarned} USDC`,
+          "",
+          "By Protocol:",
+          ...(data.byProtocol ?? []).map(
+            (p: { name: string; earned: string }) => `• ${p.name}: ${p.earned}`
+          ),
+        ];
+        await callback?.({ text: lines.join("\n") });
+        return true;
+      } catch (err) {
+        await callback?.({
+          text: `Failed to fetch earnings: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        return false;
+      }
+    },
+
+    examples: [[
+      { user: "{{user1}}", content: { text: "How much have I earned?" } },
+      {
+        user: "{{agentName}}",
+        content: {
+          text: "Total Earned: 12.5 USDC\n\nBy Protocol:\n• Aave: 8.2\n• Morpho: 4.3",
+          action: "KEEPERHUB_GET_EARNINGS",
+        },
+      },
+    ]],
+  };
+}
+```
+
+Register in `src/plugin.ts`:
+```typescript
+import { createGetEarningsAction } from "./actions/get-earnings.js";
+
+// inside createKeeperHubPlugin(), add to actions array:
+createGetEarningsAction(kh),
+```
+
+---
+
+## Rules Every Tool Must Follow
+
+### 1. Always return `ok` field
+```typescript
+// Success
+return JSON.stringify({ ok: true, ...data });
+
+// Failure  
+return JSON.stringify({ ok: false, error: "message" });
+```
+
+### 2. Never throw — always catch
+Every `func` / `_arun` / `handler` must have a top-level try/catch. The agent must always receive a JSON string back, never an exception.
+
+### 3. Testnet guard for write tools
+If your tool executes a transaction, check the guard before calling the API:
+
+```python
+# Python
+TESTNET_IDS = {"11155111", "84532", "80002", "421614", "43113", "4217"}
+if self._options.get("testnet_only") and str(network) not in TESTNET_IDS:
+    return json.dumps({"ok": False, "error": "testnet_only mode — mainnet write blocked."})
+```
+
+```typescript
+// TypeScript
+const TESTNET_IDS = new Set(["11155111","84532","80002","421614","43113","4217"]);
+if (this.options.testnetOnly && !TESTNET_IDS.has(String(chainId))) {
+  return JSON.stringify({ ok: false, error: "testnet_only mode — mainnet write blocked." });
+}
+```
+
+### 4. Naming convention
+| Package | Format | Example |
+|---|---|---|
+| Python / TS LangChain | `keeperhub_verb_noun` | `keeperhub_get_earnings` |
+| ElizaOS action name | `KEEPERHUB_VERB_NOUN` | `KEEPERHUB_GET_EARNINGS` |
+| ElizaOS similes | common phrases user might say | `["MY_EARNINGS", "HOW_MUCH_EARNED"]` |
+
+### 5. Description must answer "when should the agent call this?"
+```
+Bad:  "Gets earnings"
+Good: "Get total earnings from KeeperHub wallet. Use when the user asks how much
+       they have earned, what yield was generated, or wants a profit summary."
+```
+
+---
+
+## Running Tests
 
 ```bash
-cp .env.example .env
+# Python — run all 24 tool tests
+cd packages/langchain-keeperhub
+python -m pytest tests/ -v
+
+# TypeScript — type check + tests
+cd packages/langchain-tools
+npx tsc --noEmit
+
+# ElizaOS — type check
+cd packages/elizaos-plugin
+npx tsc --noEmit
 ```
 
-See `.env.example` for the complete list of available environment variables.
+---
 
-### Local Development (No Docker)
+## Checklist Before Adding a New Tool
 
-For UI/API development without Docker:
+- [ ] Added to Python toolkit (`tools/xxx.py` + `__init__.py` + `toolkit.py`)
+- [ ] Added to TS toolkit (`src/tools/xxx.ts` + `index.ts` + `toolkit.ts`)
+- [ ] Added to ElizaOS plugin (`src/actions/xxx.ts` + `plugin.ts`)
+- [ ] Returns `{ ok: true, ... }` on success
+- [ ] Returns `{ ok: false, error: "..." }` on failure
+- [ ] Has top-level try/catch — never throws
+- [ ] Testnet guard added if tool executes transactions
+- [ ] Description answers "when should the agent call this?"
+- [ ] OpenClaw adapters updated automatically (no extra changes needed)
 
-```bash
-pnpm install
-pnpm db:push
-pnpm dev
-```
+---
 
-Visit http://localhost:3000.
+## Package Names for Official Adoption
 
-### Docker Compose Development
+| Hackathon name | Official `@keeperhub` name |
+|---|---|
+| `keeperhub-langchain` (PyPI) | `keeperhub-langchain` — already correct |
+| `@ethglobal-openagent/langchain-keeperhub` | `@keeperhub/langchain` |
+| `@ethglobal-openagent/elizaos-keeperhub` | `@keeperhub/elizaos` |
+| `@ethglobal-openagent/openclaw-keeperhub` | `@keeperhub/openclaw` |
+| `keeperhub-sdk` | `keeperhub-sdk` — already correct |
 
-Full development stack with scheduled workflow execution:
-
-```bash
-make dev-setup    # First time (starts services + migrations)
-make dev-up       # Subsequent starts
-make dev-logs     # View logs
-make dev-down     # Stop services
-```
-
-Services: PostgreSQL (5433), LocalStack SQS (4566), KeeperHub App (3000), Schedule Dispatcher, Executor, Redis.
-
-### Hybrid Mode with K8s Jobs
-
-For testing workflow execution in isolated K8s Job containers:
-
-```bash
-make hybrid-setup     # Full setup
-make hybrid-status    # View status
-make hybrid-down      # Teardown
-```
-
-## Development Workflow
-
-1. Create a branch following the naming convention:
-
-   ```bash
-   git checkout -b feat/KEEP-123-description
-   ```
-
-2. Make your changes and test thoroughly
-
-3. Run quality checks:
-
-   ```bash
-   pnpm check       # Lint check (Ultracite/Biome)
-   pnpm type-check  # TypeScript validation
-   pnpm fix         # Auto-fix lint issues
-   ```
-
-4. Commit using conventional commit format:
-
-   ```bash
-   git commit -m "feat: KEEP-123 add new feature"
-   ```
-
-   Types: `feat`, `fix`, `hotfix`, `chore`, `docs`, `refactor`, `test`, `ci`, `build`, `perf`, `style`, `breaking`
-
-5. Push and create a pull request targeting `staging`
-
-## Pull Request Process
-
-### Before Submitting
-
-- All tests pass
-- Code passes lint (`pnpm check`) and type check (`pnpm type-check`)
-- Changes are tested thoroughly
-- No secrets, `.env` files, or credentials committed
-
-### PR Guidelines
-
-1. **Title**: Must follow conventional commit format (`feat: description` or `feat(scope): description`). This is enforced by the `pr-title-check` workflow
-2. **Base branch**: Always target `staging`
-3. **Description**: Explain what and why, not just how
-4. **Screenshots**: Include for UI changes
-
-### Deploy Verification
-
-Every PR needs production proof after merge:
-1. Deploy to staging, verify
-2. Deploy to production
-3. Document with screenshot/recording
-
-## Plugin Development Guide
-
-### Plugin System Overview
-
-Plugins extend workflow capabilities. Each plugin is self-contained in `plugins/{name}/`:
-
-```
-plugins/my-integration/
-  index.ts          # Plugin definition
-  icon.tsx          # Icon component (SVG or Lucide)
-  credentials.ts    # Credential type definition
-  test.ts           # Connection test function
-  steps/            # Action implementations
-    my-action.ts    # Step function with "use step" directive
-```
-
-Current plugins: `web3`, `discord`, `sendgrid`, `slack`, `telegram`, `webhook`, `code`, `math`, `protocol`, `safe`, `linear`.
-
-### Quick Start
-
-```bash
-pnpm create-plugin
-```
-
-This launches an interactive wizard that creates the full plugin structure. After creation:
-
-```bash
-pnpm discover-plugins  # Register the plugin
-pnpm dev               # Test it
-```
-
-### Reference Plugins
-
-- `plugins/web3/` - Full-featured plugin with multiple actions, credential handling, and read/write operations
-- `plugins/discord/` - Simpler notification plugin
-- `plugins/_template/` - Minimal template files
-
-### Step File Rules
-
-The `"use step"` directive marks a file for workflow bundler processing. Critical rules:
-
-1. **Never export functions from step files** other than the step function itself, `_integrationType`, and types
-2. **To share logic between steps**: extract into a `*-core.ts` file (no `"use step"`)
-3. **No Node.js-only SDKs** in step files -- use `fetch()` for HTTP calls
-
-See `plugins/CLAUDE.md` for the complete step file specification.
-
-### Plugin Registration
-
-After adding or modifying plugins:
-
-```bash
-pnpm discover-plugins
-```
-
-This auto-generates `lib/step-registry.ts` and `lib/codegen-registry.ts` (both gitignored).
-
-### Plugin Allowlist
-
-`plugins/plugin-allowlist.json` controls which plugins are enabled. If the file is absent, all discovered plugins are enabled.
-
-## Testing Guidelines
-
-### Running Tests
-
-```bash
-pnpm test              # All unit tests
-pnpm test:unit         # Unit tests only
-pnpm test:integration  # Integration tests
-pnpm test:e2e          # Playwright E2E tests
-```
-
-### Quality Checks
-
-```bash
-pnpm check             # Lint (Ultracite/Biome)
-pnpm type-check        # TypeScript validation
-pnpm fix               # Auto-fix lint issues
-```
-
-### Integration Testing Checklist
-
-- Connection test validates credentials correctly
-- Action executes successfully in a workflow
-- Invalid credentials show helpful error messages
-- Template variables (`{{NodeName.field}}`) work correctly
-- Edge cases tested with missing/invalid inputs
-
-### E2E Test Discovery
-
-Use the discovery tools to understand page structure before writing Playwright tests:
-
-```bash
-pnpm discover /path --auth --highlight
-```
-
-See the E2E testing section in `CLAUDE.md` for the full discovery-first workflow.
+Only the `name` field in `package.json` needs to change — the code is identical.

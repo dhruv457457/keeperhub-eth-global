@@ -5,12 +5,10 @@ import { z } from "zod";
 const ExecuteWorkflowSchema = z.object({
   workflowId: z
     .string()
-    .regex(
-      /^(wf_[a-zA-Z0-9_-]{1,64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
-      "Invalid workflow ID — expected wf_xxx or a UUID"
-    )
+    .min(4)
+    .max(80)
     .describe(
-      "The KeeperHub workflow ID to execute (format: wf_xxx or a UUID)"
+      "The KeeperHub workflow ID to execute. Get from keeperhub_list_workflows. Example: 3297ovip8fa4j7t9dxw2q"
     ),
   input: z
     .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
@@ -47,44 +45,31 @@ export function createExecuteWorkflowTool(
   kh: KeeperHub
 ): DynamicStructuredTool {
   return new DynamicStructuredTool({
-    name: "execute_keeperhub_workflow",
+    name: "keeperhub_execute_workflow",
     description:
       "Execute a KeeperHub onchain automation workflow. " +
       "Use this when you need to run a blockchain transaction, DeFi operation, " +
       "token transfer, or any other onchain action that has been configured as a KeeperHub workflow. " +
       "Pass the workflow ID and any required runtime inputs.",
     schema: ExecuteWorkflowSchema,
-    func: async ({ workflowId, input, wait, mode }) => {
-      // tryRun never throws — returns a structured AgentObservation with an
-      // LLM-ready summary field so the agent can reason about success or failure
-      const obs = await kh.tryRun(workflowId, {
-        input,
-        wait,
-        mode: mode ?? "safe",
-        verbose: true,
-      });
-
-      if (!obs.ok) {
+    func: async ({ workflowId, input }) => {
+      try {
+        // Direct execution — returns executionId immediately
+        const handle = await kh.workflows.execute(workflowId, input ?? {});
+        return JSON.stringify({
+          ok: true,
+          executionId: handle.id,
+          workflowId,
+          status: "running",
+          hint: `Use keeperhub_check_execution with executionId="${handle.id}" to poll status`,
+        });
+      } catch (err) {
         return JSON.stringify({
           ok: false,
-          summary: obs.summary,
-          error: obs.error?.message,
-          isRetryable: obs.error?.isRetryable,
-          suggestion: obs.error?.suggestedAction,
+          workflowId,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
-
-      const result = obs.result!;
-      return JSON.stringify({
-        ok: true,
-        summary: obs.summary,
-        executionId: result.executionId,
-        status: result.status,
-        attempts: result.attempts,
-        transactionHash: result.execution.transactionHash,
-        gasUsedWei: result.execution.gasUsedWei,
-        output: result.execution.output,
-      });
     },
   });
 }

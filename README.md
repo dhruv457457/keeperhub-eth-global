@@ -22,6 +22,177 @@ tools = toolkit.get_tools()  # 31 tools, ready to use
 
 ---
 
+## Set Up Your Agent in 5 Minutes
+
+Pick your framework. Set two env vars. Run.
+
+```bash
+export KEEPERHUB_API_KEY=kh_...      # app.keeperhub.com → Settings → API Keys
+export OPENROUTER_API_KEY=sk-or-...  # openrouter.ai — free models available
+```
+
+---
+
+### Python LangChain
+
+```bash
+pip install keeperhub-langchain langchain-openai langgraph
+```
+
+```python
+# quickstart.py
+import asyncio, os
+from langchain_keeperhub import KeeperHubToolkit
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
+
+async def main():
+    toolkit = KeeperHubToolkit(testnet_only=True)
+    agent = create_react_agent(
+        model=ChatOpenAI(
+            model="anthropic/claude-haiku-4-5",
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        ),
+        tools=toolkit.get_tools(),  # 24 tools
+    )
+    result = await agent.ainvoke({
+        "messages": [("user", "What blockchains does KeeperHub support?")]
+    })
+    print(result["messages"][-1].content)
+
+asyncio.run(main())
+```
+
+```bash
+python quickstart.py
+# → "KeeperHub supports 19 chains: Ethereum, Base, Arbitrum..."
+```
+
+---
+
+### TypeScript LangChain
+
+```bash
+npm install @ethglobal-openagent/langchain-keeperhub @langchain/openai @langchain/langgraph tsx
+```
+
+```typescript
+// quickstart.ts
+import { KeeperHubToolkit } from "@ethglobal-openagent/langchain-keeperhub";
+import { ChatOpenAI } from "@langchain/openai";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+
+const toolkit = new KeeperHubToolkit({
+  apiKey: process.env.KEEPERHUB_API_KEY!,
+  testnetOnly: true,
+});
+
+const agent = createReactAgent({
+  llm: new ChatOpenAI({
+    model: "anthropic/claude-haiku-4-5",
+    configuration: {
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY,
+    },
+  }),
+  tools: toolkit.getTools(),  // 27 tools
+});
+
+const result = await agent.invoke({
+  messages: [{ role: "user", content: "Resolve vitalik.eth" }],
+});
+console.log(result.messages.at(-1)?.content);
+// → "vitalik.eth → 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+```
+
+```bash
+npx tsx quickstart.ts
+```
+
+---
+
+### ElizaOS
+
+```bash
+npm install @ethglobal-openagent/elizaos-keeperhub @elizaos/core
+```
+
+```typescript
+import { AgentRuntime, ModelProviderName } from "@elizaos/core";
+import { createKeeperHubPlugin } from "@ethglobal-openagent/elizaos-keeperhub";
+
+const runtime = new AgentRuntime({
+  modelProvider: ModelProviderName.OPENAI,  // works with any provider
+  character: {
+    name: "DeFi Agent",
+    bio: ["I execute onchain operations via KeeperHub."],
+    plugins: [
+      createKeeperHubPlugin({
+        apiKey: process.env.KEEPERHUB_API_KEY!,
+        testnetOnly: true,
+      }),
+    ],
+  },
+});
+
+// Agent now responds to plain English:
+// "Send 0.01 ETH to vitalik.eth"   → KEEPERHUB_TRANSFER fires
+// "Supply 100 USDC to Aave"        → KEEPERHUB_PROTOCOL_ACTION fires
+// "What chains are supported?"     → KEEPERHUB_LIST_CHAINS fires
+```
+
+---
+
+### OpenClaw (no code needed)
+
+```bash
+npm install -g openclaw
+openclaw plugin install @ethglobal-openagent/openclaw-keeperhub
+openclaw
+```
+
+```
+> Check my wallet balance
+→ Address: 0x554b...c49b78 | ETH: 0.05 | USDC: 100.00
+
+> What DeFi protocols can I use?
+→ 396 actions: Aave V3/V4, Uniswap, Lido, Compound V3, Morpho...
+
+> Resolve vitalik.eth
+→ 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+```
+
+27 tools available in plain English. No code required.
+
+---
+
+### Core SDK (TypeScript — direct API access)
+
+```bash
+npm install keeperhub-sdk tsx
+```
+
+```typescript
+import { KeeperHub } from "keeperhub-sdk";
+
+const kh = new KeeperHub({ apiKey: process.env.KEEPERHUB_API_KEY! });
+
+const wallet = await kh.wallet.getWallet();
+console.log("Wallet:", wallet.walletAddress);
+
+const chains = await kh.chains.getChains();
+console.log("Chains:", chains.map(c => c.name).join(", "));
+
+// All other packages (Python, TS, ElizaOS, OpenClaw) run on top of this.
+```
+
+```bash
+npx tsx quickstart.ts
+```
+
+---
+
 ## What We Built
 
 ### 7 Framework Integrations
