@@ -136,9 +136,13 @@ Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, BNB Chain, and their tes
 
 ---
 
-## Telegram Bot
+## 🤖 Telegram Bot
 
-Hosted bot: [t.me/khethworkbot](https://t.me/khethworkbot)
+We built a live Telegram agent powered by the same SDK:
+
+👉 https://t.me/khethworkbot
+
+Interact with KeeperHub tools directly via chat — check balances, transfer funds, resolve ENS names, and execute DeFi actions in plain English.
 
 👉 **Bot docs:** [Telegram Bot](./docs/telegram-bot)
 
