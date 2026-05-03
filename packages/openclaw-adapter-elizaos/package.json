@@ -1,6 +1,6 @@
 {
   "name": "@ethglobal-openagent/openclaw-eliza-keeperhub",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "KeeperHub ElizaOS actions wrapped as native OpenClaw tools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

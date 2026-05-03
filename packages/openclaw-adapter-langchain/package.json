@@ -1,6 +1,6 @@
 {
   "name": "@ethglobal-openagent/openclaw-keeperhub",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "KeeperHub LangChain tools wrapped as native OpenClaw tools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
