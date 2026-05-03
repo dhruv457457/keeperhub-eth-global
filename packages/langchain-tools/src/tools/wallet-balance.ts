@@ -25,61 +25,74 @@ export function createWalletBalanceTool(kh: KeeperHub): DynamicStructuredTool {
     }),
     func: async ({ chainId }) => {
       try {
-        const wallet = await kh.wallet.getWallet();
-        const w = wallet as Record<string, unknown>;
+        // Get wallet address
+        const walletInfo = await kh.wallet.getWallet();
+        const w = walletInfo as Record<string, unknown>;
+        const walletAddress = String(w["walletAddress"] ?? w["address"] ?? "");
 
-        // Try to get token balances
-        let balances: unknown[] = [];
-        try {
-          const tokenData = await kh.wallet.getTokenBalances(
-            chainId ? String(chainId) : undefined
-          );
-          balances = Array.isArray(tokenData) ? tokenData : [];
-        } catch {
-          // balances optional
-        }
+        // /api/user/wallet/balances is the correct endpoint (tokens returns empty)
+        const kh_ = kh as unknown as {
+          _http: { request: (m: string, p: string) => Promise<unknown> }
+        };
+        const balData = await kh_._http.request("GET", "/api/user/wallet/balances") as Record<string, unknown>;
+        const allChains = (balData["balances"] as Record<string, unknown>[]) ?? [];
 
-        // Highlight USDC balances for payment readiness
-        const usdcBase = (balances as Record<string, unknown>[]).find(
-          (b) =>
-            String(b["address"]).toLowerCase() ===
-            "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+        // Filter by chainId if specified, otherwise all chains with balance
+        const chains = chainId
+          ? allChains.filter(c => String(c["chainId"]) === String(chainId))
+          : allChains;
+
+        // Build per-chain summary
+        const summary = chains.map(chain => {
+          const tokens = (chain["tokens"] as Record<string, unknown>[]) ?? [];
+          const supported = (chain["supportedTokens"] as Record<string, unknown>[]) ?? [];
+          const allTokens = tokens.length > 0 ? tokens : supported;
+          return {
+            chainId: chain["chainId"],
+            chain: chain["chainName"],
+            native: {
+              symbol: chain["symbol"],
+              balance: chain["nativeBalance"] ?? chain["nativeBal"] ?? "0",
+            },
+            tokens: allTokens
+              .filter(t => parseFloat(String(t["balance"] ?? "0")) > 0)
+              .map(t => ({ symbol: t["symbol"], balance: t["balance"], address: t["tokenAddress"] })),
+          };
+        });
+
+        // Chains with any balance
+        const funded = summary.filter(c =>
+          parseFloat(String(c.native.balance)) > 0 || c.tokens.length > 0
         );
-        const usdcTempo = (balances as Record<string, unknown>[]).find(
-          (b) =>
-            String(b["address"]).toLowerCase() ===
-            "0x20c000000000000000000000b9537d11c60e8b50"
-        );
+
+        // USDC on Base for x402
+        const baseChain = allChains.find(c => String(c["chainId"]) === "8453");
+        const baseTokens = ((baseChain?.["tokens"] ?? baseChain?.["supportedTokens"]) as Record<string,unknown>[] ?? []);
+        const usdcBase = baseTokens.find(t => String(t["tokenAddress"]).toLowerCase() === "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
+        const tempoChain = allChains.find(c => String(c["chainId"]) === "4217");
+        const tempoTokens = ((tempoChain?.["tokens"] ?? tempoChain?.["supportedTokens"]) as Record<string,unknown>[] ?? []);
+        const usdcTempo = tempoTokens.find(t => String(t["tokenAddress"]).toLowerCase() === "0x20c000000000000000000000b9537d11c60e8b50");
 
         return JSON.stringify({
           ok: true,
-          wallet_address: w["walletAddress"] ?? w["address"],
-          balances: balances.slice(0, 20),
+          wallet_address: walletAddress,
+          funded_chains: funded,
+          all_chains: summary,
           payment_readiness: {
-            x402_base_usdc: usdcBase
-              ? {
-                  balance: usdcBase["balance"],
-                  symbol: "USDC",
-                  chain: "Base (8453)",
-                }
-              : {
-                  balance: "0",
-                  symbol: "USDC",
-                  chain: "Base (8453)",
-                  hint: "Fund with USDC on Base for x402 payments",
-                },
-            mpp_tempo_usdce: usdcTempo
-              ? {
-                  balance: usdcTempo["balance"],
-                  symbol: "USDC.e",
-                  chain: "Tempo (4217)",
-                }
-              : {
-                  balance: "0",
-                  symbol: "USDC.e",
-                  chain: "Tempo (4217)",
-                  hint: "Fund with USDC.e on Tempo for MPP payments",
-                },
+            x402_base_usdc: {
+              balance: String(usdcBase?.["balance"] ?? "0"),
+              symbol: "USDC",
+              chain: "Base (8453)",
+              hint: parseFloat(String(usdcBase?.["balance"] ?? "0")) === 0
+                ? "Fund with USDC on Base for x402 payments" : undefined,
+            },
+            mpp_tempo_usdce: {
+              balance: String(usdcTempo?.["balance"] ?? "0"),
+              symbol: "USDC.e",
+              chain: "Tempo (4217)",
+              hint: parseFloat(String(usdcTempo?.["balance"] ?? "0")) === 0
+                ? "Fund with USDC.e on Tempo for MPP payments" : undefined,
+            },
           },
         });
       } catch (err) {
