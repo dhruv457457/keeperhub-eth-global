@@ -78,12 +78,12 @@ tools = toolkit.get_tools()  # 24 tools, ready to use
 
 | Package | Registry | Tools/Actions | Language | Docs |
 |---------|-----------|---------------|----------|------|
-| `keeperhub-langchain` | PyPI | 24 tools | Python | [python-langchain/](./docs/python-langchain) |
-| `@ethglobal-openagent/langchain-keeperhub` | npm | 25 tools | TypeScript | [ts-langchain/](./docs/ts-langchain) |
-| `@ethglobal-openagent/elizaos-keeperhub` | npm | 17 actions | TypeScript | [elizaos/](./docs/elizaos) |
-| `@ethglobal-openagent/openclaw-keeperhub` | npm | 25 tools | TypeScript | [openclaw/](./docs/openclaw) |
-| `@ethglobal-openagent/openclaw-eliza-keeperhub` | npm | 17 actions | TypeScript | [openclaw/](./docs/openclaw) |
-| `keeperhub-sdk` | npm | Core API | TypeScript | [sdk/](./docs/sdk) |
+| `keeperhub-langchain` | [PyPI](https://pypi.org/project/keeperhub-langchain/) | 24 tools | Python | [python-langchain/](./docs/python-langchain) |
+| `@ethglobal-openagent/langchain-keeperhub` | [npm](https://www.npmjs.com/package/@ethglobal-openagent/langchain-keeperhub) | 25 tools | TypeScript | [ts-langchain/](./docs/ts-langchain) |
+| `@ethglobal-openagent/elizaos-keeperhub` | [npm](https://www.npmjs.com/package/@ethglobal-openagent/elizaos-keeperhub) | 17 actions | TypeScript | [elizaos/](./docs/elizaos) |
+| `@ethglobal-openagent/openclaw-keeperhub` | [npm](https://www.npmjs.com/package/@ethglobal-openagent/openclaw-keeperhub) | 25 tools | TypeScript | [openclaw/](./docs/openclaw) |
+| `@ethglobal-openagent/openclaw-eliza-keeperhub` | [npm](https://www.npmjs.com/package/@ethglobal-openagent/openclaw-eliza-keeperhub) | 17 actions | TypeScript | [openclaw/](./docs/openclaw) |
+| `keeperhub-sdk` | [npm](https://www.npmjs.com/package/keeperhub-sdk) | Core API | TypeScript | [sdk/](./docs/sdk) |
 
 👉 **Full architecture:** [Architecture Overview](./docs/architecture.md)
 
