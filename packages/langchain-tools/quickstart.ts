@@ -12,7 +12,19 @@
  *   npx tsx quickstart.ts
  */
 
+import { readFileSync } from "fs";
 import { KeeperHubToolkit } from "@ethglobal-openagent/langchain-keeperhub";
+
+// Load .env file manually
+try {
+  const envContent = readFileSync(".env", "utf-8");
+  for (const line of envContent.split("\n")) {
+    const [key, ...values] = line.split("=");
+    if (key && values.length) {
+      process.env[key.trim()] = values.join("=").trim();
+    }
+  }
+} catch {}
 import { ChatOpenAI } from "@langchain/openai";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 
@@ -33,9 +45,15 @@ async function main() {
 
   // 2. Connect LLM
   console.log(`[2/3] Connecting LLM (${LLM_MODEL})...`);
+  if (!LLM_API_KEY) {
+    console.error("ERROR: No API key found. Please set OPENROUTER_API_KEY or OPENAI_API_KEY");
+    process.exit(1);
+  }
+  console.log(`      API key loaded: ${LLM_API_KEY.substring(0, 10)}...`);
   const llm = new ChatOpenAI({
     model: LLM_MODEL,
-    configuration: { baseURL: LLM_BASE_URL, apiKey: LLM_API_KEY },
+    apiKey: LLM_API_KEY,
+    configuration: { baseURL: LLM_BASE_URL },
   });
   const agent = createReactAgent({ llm, tools });
   console.log("      Agent ready\n");

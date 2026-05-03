@@ -1,9 +1,9 @@
 {
   "id": "keeperhub-langchain",
   "name": "KeeperHub (LangChain SDK)",
-  "description": "KeeperHub's full 24-tool LangChain SDK exposed as native OpenClaw tools. Includes DeFi protocols (Aave, Uniswap, Lido, Compound, Morpho), token transfers, workflow automation, ENS resolution, x402/MPP payments, ERC-8004 agent identity, Chainlink CCIP, and more.",
-  "version": "1.0.0",
-  "author": "KeeperHub Agent SDK",
+  "description": "KeeperHub's full 25-tool LangChain SDK as native OpenClaw tools — DeFi protocols (Aave, Uniswap, Lido, Compound, 392 more), token transfers, ENS resolution, Chainlink price feeds, workflow generation & execution, smart contract calls, x402/MPP payments, ERC-8004 agent identity, and Chainlink CCIP across 19 blockchains.",
+  "version": "1.8.3",
+  "author": "Dhruv Pancholi",
   "homepage": "https://github.com/dhruv457457/keeperhub-eth-global",
   "main": "./dist/index.js",
   "configSchema": {
@@ -21,20 +21,15 @@
       },
       "testnetOnly": {
         "type": "boolean",
-        "description": "Block all mainnet write calls (transfer, contract write, check-and-execute). Recommended for development.",
+        "description": "Block all mainnet write operations. Read operations always work.",
         "default": false
       },
       "allowedChainIds": {
         "type": "array",
         "items": { "type": "string" },
-        "description": "Allowlist of chain IDs (as strings). Only these chains can be used for writes."
-      },
-      "tools": {
-        "type": "array",
-        "items": { "type": "string" },
-        "description": "Which LangChain tools to expose. Defaults to all 24 tools."
+        "description": "Allowlist of chain IDs for writes e.g. [\"84532\", \"11155111\"]."
       }
     },
-    "required": []
+    "required": ["apiKey"]
   }
 }

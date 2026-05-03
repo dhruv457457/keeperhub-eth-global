@@ -1,9 +1,9 @@
 {
   "id": "keeperhub-eliza",
   "name": "KeeperHub (ElizaOS Plugin)",
-  "description": "KeeperHub's ElizaOS actions as native OpenClaw tools. 19 actions including DeFi protocols, token transfers, workflow automation, ENS resolution, x402/MPP payments, ERC-8004 agent identity, and Chainlink CCIP. Actions are named with eliza_ prefix to distinguish from the LangChain adapter.",
-  "version": "1.1.0",
-  "author": "KeeperHub Agent SDK",
+  "description": "KeeperHub onchain DeFi actions as native OpenClaw tools — 17 ElizaOS-style actions covering token transfers, wallet balance, ENS resolution, Chainlink price feeds, DeFi protocols (Aave, Uniswap, Lido), workflow generation & execution, x402/MPP payments, and ERC-8004 agent identity across 19 blockchains. Actions use the eliza_keeperhub_ prefix.",
+  "version": "1.2.3",
+  "author": "Dhruv Pancholi",
   "homepage": "https://github.com/dhruv457457/keeperhub-eth-global",
   "main": "./dist/index.js",
   "configSchema": {
@@ -16,20 +16,20 @@
       },
       "baseUrl": {
         "type": "string",
-        "description": "KeeperHub base URL. Defaults to https://app.keeperhub.com",
+        "description": "KeeperHub base URL.",
         "default": "https://app.keeperhub.com"
       },
       "testnetOnly": {
         "type": "boolean",
-        "description": "Block all mainnet write calls.",
+        "description": "Block all mainnet write operations. Read operations always work.",
         "default": false
       },
       "allowedChainIds": {
         "type": "array",
         "items": { "type": "string" },
-        "description": "Allowlist of chain IDs for writes."
+        "description": "Allowlist of chain IDs for write operations e.g. [\"84532\", \"11155111\"]."
       }
     },
-    "required": []
+    "required": ["apiKey"]
   }
 }
