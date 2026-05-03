@@ -1,1 +1,0 @@
-CREATE INDEX "idx_wallet_approval_resolved_by" ON "wallet_approval_requests" USING btree ("resolved_by_user_id");

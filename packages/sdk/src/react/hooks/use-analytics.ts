@@ -19,6 +19,8 @@ export function useAnalyticsSummary(options?: {
     queryKey: ["analytics-summary", options],
     queryFn: () => kh.analytics.summary(options),
     staleTime: 60_000,
+    retry: false,        // don't retry 401s — analytics may not be available on all plans
+    throwOnError: false, // never surface as unhandled error
   });
 }
 
@@ -31,6 +33,8 @@ export function useAnalyticsRuns(options?: {
     queryKey: ["analytics-runs", options],
     queryFn: () => kh.analytics.runs(options),
     staleTime: 60_000,
+    retry: false,
+    throwOnError: false,
   });
 }
 
@@ -40,6 +44,8 @@ export function useAnalyticsTimeSeries(options?: { range?: AnalyticsRange }) {
     queryKey: ["analytics-time-series", options],
     queryFn: () => kh.analytics.timeSeries(options),
     staleTime: 60_000,
+    retry: false,
+    throwOnError: false,
   });
 }
 
@@ -49,6 +55,8 @@ export function useAnalyticsNetworks() {
     queryKey: ["analytics-networks"],
     queryFn: () => kh.analytics.networks(),
     staleTime: 60_000,
+    retry: false,
+    throwOnError: false,
   });
 }
 
@@ -63,6 +71,8 @@ export function useGasCredits() {
     queryKey: ["gas-credits"],
     queryFn: () => kh.analytics.spendCap(),
     staleTime: 30_000,
+    retry: false,
+    throwOnError: false,
   });
 }
 

@@ -1,5 +1,0 @@
-export default {
-  para: "Para Integration",
-  gas: "Gas Management",
-  "address-book": "Address Book",
-};

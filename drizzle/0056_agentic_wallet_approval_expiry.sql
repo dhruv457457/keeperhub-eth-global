@@ -1,1 +1,0 @@
-ALTER TABLE "wallet_approval_requests" ADD COLUMN "expires_at" timestamp DEFAULT now() + interval '15 minutes' NOT NULL;

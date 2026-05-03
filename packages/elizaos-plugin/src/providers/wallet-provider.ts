@@ -3,8 +3,9 @@ import { elizaLogger } from "@elizaos/core";
 import type { KeeperHub } from "keeperhub-sdk";
 
 /**
- * Injects KeeperHub wallet context: address and top token balances.
- * Lets the agent know its wallet state so it can make informed decisions.
+ * Injects KeeperHub wallet context: address and real native token balances.
+ * Uses /api/user/wallet/balances — the correct endpoint.
+ * /api/user/wallet/tokens always returns empty (broken endpoint).
  */
 export function createWalletProvider(kh: KeeperHub): Provider {
   return {
@@ -14,33 +15,43 @@ export function createWalletProvider(kh: KeeperHub): Provider {
       _state?: State
     ): Promise<string> => {
       try {
-        const [wallet, balances] = await Promise.all([
-          kh.wallet.get(),
-          kh.wallet.balances(),
-        ]);
-
-        // Truncate address to 0x1234...abcd to avoid leaking full address into logs/context
-        const addr = wallet.address ?? "";
+        const walletInfo = await kh.wallet.get();
+        const addr = walletInfo.address ?? "";
         const shortAddr =
           addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
 
-        const topBalances = balances
-          .filter((b) => Number(b.balance) > 0)
-          .slice(0, 10)
-          .map(
-            (b) =>
-              `- ${b.token}: ${b.balance}${b.usdValue ? ` (~$${b.usdValue})` : ""}`
-          )
-          .join("\n");
+        // Use correct balances endpoint — /tokens always returns []
+        const kh_ = kh as unknown as {
+          _http: { request: (m: string, p: string) => Promise<unknown> }
+        };
+        const balData = await kh_._http.request("GET", "/api/user/wallet/balances") as Record<string, unknown>;
+        const chains = (balData["balances"] as Record<string, unknown>[]) ?? [];
+
+        // Build balance lines: native ETH/MATIC per chain + ERC-20 tokens
+        const lines: string[] = [];
+        for (const chain of chains) {
+          const nativeBal = String(chain["nativeBalance"] ?? chain["nativeBal"] ?? "0");
+          const symbol = String(chain["symbol"] ?? "");
+          const chainName = String(chain["chainName"] ?? chain["chainId"] ?? "");
+          if (parseFloat(nativeBal) > 0) {
+            lines.push(`- ${chainName}: ${nativeBal} ${symbol}`);
+          }
+          const tokens = (chain["tokens"] as Record<string, unknown>[]) ?? [];
+          for (const tok of tokens) {
+            const bal = String(tok["balance"] ?? "0");
+            if (parseFloat(bal) > 0) {
+              lines.push(`- ${chainName}: ${bal} ${tok["symbol"]}`);
+            }
+          }
+        }
 
         return [
-          "KeeperHub Wallet:",
+          "KeeperHub Managed Wallet:",
           `- Address: ${shortAddr}`,
-          `- Provider: ${wallet.provider}`,
-          `- Active: ${wallet.isActive}`,
-          balances.length > 0
-            ? `\nToken Balances:\n${topBalances || "  (all zero)"}`
-            : "No balances loaded.",
+          `- Active: ${walletInfo.isActive ?? true}`,
+          lines.length > 0
+            ? `\nBalances:\n${lines.join("\n")}`
+            : "\nBalances: (all chains empty — fund wallet to execute transactions)",
         ].join("\n");
       } catch (err) {
         elizaLogger.warn(

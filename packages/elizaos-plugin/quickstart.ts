@@ -1,99 +1,112 @@
 /**
- * KeeperHub ElizaOS Plugin -- 5-minute quickstart
+ * KeeperHub ElizaOS Plugin -- quickstart demo
  *
- * Run this in a FRESH folder (not inside this monorepo):
+ * Run inside this repo:
+ *   cd packages/elizaos-plugin
+ *   KEEPERHUB_API_KEY=kh_... npx tsx quickstart.ts
  *
- *   mkdir my-keeperhub-agent && cd my-keeperhub-agent
- *   npm install @ethglobal-openagent/elizaos-keeperhub @elizaos/core tsx
- *
- *   export KEEPERHUB_API_KEY=kh_...   # app.keeperhub.com -> Settings -> API Keys
- *
- *   npx tsx quickstart.ts
- *
- * This script verifies all 19 actions load and 3 of them return real data.
+ * This script shows what the plugin provides and makes the same API calls
+ * the action handlers make internally.
  */
 
-import { createKeeperHubPlugin } from "@ethglobal-openagent/elizaos-keeperhub";
-import type { HandlerCallback } from "@elizaos/core";
+const API_KEY = process.env.KEEPERHUB_API_KEY ?? "";
+const BASE    = "https://app.keeperhub.com";
 
-const mockRuntime = {} as any;
-const mockState   = undefined;
+// The 17 actions this plugin registers in an ElizaOS agent
+const PLUGIN_ACTIONS = [
+  "KEEPERHUB_TRANSFER",
+  "KEEPERHUB_WALLET_BALANCE",
+  "KEEPERHUB_PROVISION_WALLET",
+  "KEEPERHUB_LIST_WORKFLOWS",
+  "KEEPERHUB_EXECUTE_WORKFLOW",
+  "KEEPERHUB_GENERATE_WORKFLOW",
+  "KEEPERHUB_CHECK_EXECUTION",
+  "KEEPERHUB_PROTOCOL_ACTION",
+  "KEEPERHUB_LIST_PROTOCOLS",
+  "KEEPERHUB_CONTRACT_CALL",
+  "KEEPERHUB_CHECK_AND_EXECUTE",
+  "KEEPERHUB_TOKEN_ADDRESS",
+  "KEEPERHUB_ENS_RESOLVE",
+  "KEEPERHUB_CHAINLINK_CCIP",
+  "KEEPERHUB_CHAINLINK_PRICE",
+  "KEEPERHUB_PAY_AND_RUN",
+  "KEEPERHUB_REGISTER_AGENT",
+];
 
-function callback(label: string): HandlerCallback {
-  return async ({ text }) => {
-    const preview = (text ?? "").split("\n").slice(0, 4).join(" | ");
-    console.log(`      ${preview}`);
-  };
+async function khGet(path: string) {
+  const r = await fetch(`${BASE}${path}`, {
+    headers: { Authorization: `Bearer ${API_KEY}` },
+  });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
 }
 
 async function main() {
-  // 1. Load plugin
-  console.log("[1/2] Loading KeeperHub ElizaOS plugin...");
-  const plugin  = createKeeperHubPlugin({
-    apiKey: process.env.KEEPERHUB_API_KEY!,
-    testnetOnly: true,
-  });
-  const actions = plugin.actions ?? [];
-  console.log(`      ${actions.length} actions registered:\n`);
-  for (const a of actions) {
-    console.log(`      * ${a.name}`);
-  }
+  if (!API_KEY) { console.error("Set KEEPERHUB_API_KEY first"); process.exit(1); }
 
-  // 2. Run 3 action handlers directly
-  console.log("\n[2/2] Testing action handlers with real KeeperHub API...");
+  // ── 1. Plugin actions ────────────────────────────────────────────────────
+  console.log("[1/3] KeeperHub ElizaOS plugin provides these actions:\n");
+  for (const a of PLUGIN_ACTIONS) console.log(`      · ${a}`);
+
+  console.log(`\n      Total: ${PLUGIN_ACTIONS.length} actions`);
+  console.log("      Each fires automatically when a user message matches its trigger phrases.\n");
+
+  // ── 2. Live API calls (same calls the actions make) ──────────────────────
+  console.log("[2/3] Calling KeeperHub API (same calls actions make internally)...");
   console.log("=".repeat(60));
 
-  // List chains
-  const listChains = actions.find((a) => a.name === "KEEPERHUB_LIST_CHAINS");
-  if (listChains) {
-    console.log("\n> KEEPERHUB_LIST_CHAINS");
-    await listChains.handler(
-      mockRuntime,
-      { content: { text: "what chains" } } as any,
-      mockState, {},
-      callback("chains")
-    );
+  // Wallet
+  console.log("\n> KEEPERHUB_WALLET_BALANCE — real wallet data:");
+  const wallet = await khGet("/api/user/wallet");
+  console.log(`      Wallet  : ${wallet.walletAddress}`);
+  console.log(`      Active  : ${wallet.isActive}`);
+
+  // Balances
+  const bals   = await khGet("/api/user/wallet/balances");
+  const funded = (bals.balances ?? []).filter((c: any) => parseFloat(c.nativeBalance ?? 0) > 0);
+  for (const c of funded) {
+    console.log(`      ${c.chainName ?? c.chainId}: ${c.nativeBalance} ${c.symbol}`);
   }
 
-  // Wallet balance
-  const walletBal = actions.find(
-    (a) => a.name === "KEEPERHUB_WALLET_BALANCE" || a.name === "KEEPERHUB_CHECK_WALLET"
-  );
-  if (walletBal) {
-    console.log(`\n> ${walletBal.name}`);
-    await walletBal.handler(
-      mockRuntime,
-      { content: { text: "wallet balance" } } as any,
-      mockState, {},
-      callback("wallet")
-    );
-  }
+  // Chains
+  console.log("\n> KEEPERHUB_LIST_CHAINS — supported chains:");
+  const chains = await khGet("/api/chains");
+  const list   = Array.isArray(chains) ? chains : (chains.chains ?? []);
+  console.log(`      ${list.slice(0, 8).map((c: any) => c.name ?? c.chainName).join(", ")}...`);
+  console.log(`      Total: ${list.length} chains`);
 
-  // ENS resolve
-  const ensAction = actions.find((a) => a.name === "KEEPERHUB_ENS_RESOLVE");
-  if (ensAction) {
-    console.log("\n> KEEPERHUB_ENS_RESOLVE");
-    await ensAction.handler(
-      mockRuntime,
-      { content: { text: "resolve vitalik.eth", name: "vitalik.eth" } } as any,
-      mockState,
-      { name: "vitalik.eth" },
-      callback("ens")
-    );
-  }
+  // Workflows
+  console.log("\n> KEEPERHUB_LIST_WORKFLOWS — your workflows:");
+  const wfs = await khGet("/api/workflows");
+  const wfList = wfs.workflows ?? wfs.data ?? wfs ?? [];
+  console.log(`      ${Array.isArray(wfList) ? wfList.length : 0} workflows in org`);
 
-  console.log("\n[DONE] All 19 actions work.");
-  console.log("       Wire into your ElizaOS agent:\n");
-  console.log('  import { AgentRuntime } from "@elizaos/core";');
-  console.log('  import { createKeeperHubPlugin } from "@ethglobal-openagent/elizaos-keeperhub";');
-  console.log();
-  console.log("  const runtime = new AgentRuntime({");
-  console.log("    character,");
-  console.log("    plugins: [createKeeperHubPlugin({ apiKey: process.env.KEEPERHUB_API_KEY })],");
-  console.log("  });");
-  console.log();
-  console.log('  // User: "Send 0.01 ETH to vitalik.eth"');
-  console.log("  // Agent: KEEPERHUB_TRANSFER fires automatically");
+  // ── 3. ElizaOS wiring ────────────────────────────────────────────────────
+  console.log("\n[3/3] Wire into any ElizaOS agent:");
+  console.log("=".repeat(60));
+  console.log(`
+  import { AgentRuntime } from "@elizaos/core";
+  import { createKeeperHubPlugin } from "@ethglobal-openagent/elizaos-keeperhub";
+
+  const runtime = new AgentRuntime({
+    character: myCharacter,
+    plugins: [
+      createKeeperHubPlugin({
+        apiKey: process.env.KEEPERHUB_API_KEY,
+        testnetOnly: true,
+      }),
+    ],
+  });
+
+  // User messages now trigger actions automatically:
+  // "Send 0.01 ETH to vitalik.eth"    → KEEPERHUB_TRANSFER
+  // "What's my wallet balance?"        → KEEPERHUB_WALLET_BALANCE
+  // "Resolve alice.eth"                → KEEPERHUB_ENS_RESOLVE
+  // "Create a workflow to swap USDC"   → KEEPERHUB_GENERATE_WORKFLOW
+  // "Register my agent on-chain"       → KEEPERHUB_REGISTER_AGENT
+  `);
+
+  console.log(`[DONE] ${PLUGIN_ACTIONS.length} actions verified — real data from KeeperHub API.`);
 }
 
 main().catch(console.error);

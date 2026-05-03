@@ -2,7 +2,7 @@
 
 > The complete SDK for building AI agents that execute onchain — Python, TypeScript, ElizaOS, OpenClaw, and Hermes.
 
-Built for the **ETHGlobal OpenAgents Hackathon** · Runs on real Base mainnet · 18/18 live tests passing
+Built for the **ETHGlobal OpenAgents Hackathon** · Runs on real Base mainnet · 5 frameworks · 25+ tools · 19 chains
 
 ---
 
@@ -17,7 +17,7 @@ Before this SDK, a developer wanting to build an AI agent that executes DeFi ope
 ```python
 from langchain_keeperhub import KeeperHubToolkit
 toolkit = KeeperHubToolkit()
-tools = toolkit.get_tools()  # 31 tools, ready to use
+tools = toolkit.get_tools()  # 24 tools, ready to use
 ```
 
 ---
@@ -163,7 +163,7 @@ openclaw
 → 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 ```
 
-27 tools available in plain English. No code required.
+25 tools available in plain English. No code required.
 
 ---
 
@@ -193,28 +193,38 @@ npx tsx quickstart.ts
 
 ---
 
+## Packages
+
+### Package Stability
+
+| Package | Install | Tools | Stability |
+|---------|---------|-------|-----------|
+| `@ethglobal-openagent/openclaw-eliza-keeperhub` | `openclaw plugin install` | 17 ElizaOS actions | ✅ Most Tested |
+| `@ethglobal-openagent/openclaw-keeperhub` | `openclaw plugin install` | 25 LangChain tools | ✅ Most Tested |
+| `@ethglobal-openagent/elizaos-keeperhub` | `npm install` | 17 actions | ✅ Well Tested |
+| `@ethglobal-openagent/langchain-keeperhub` | `npm install` | 25 tools | ✅ Well Tested |
+| `keeperhub-langchain` | `pip install` | 24 tools | ✅ Tested |
+| `keeperhub-sdk` | `npm install` | Core API | ⚠️ Least Tested |
+
+Order (most → least tested): OpenClaw ElizaOS → OpenClaw LangChain → ElizaOS Plugin → TS LangChain → Python LangChain → Core SDK
+
+---
+
 ## What We Built
 
-### 7 Framework Integrations
+### 5 Published Packages
 
-| Package | Framework | How | Tools / Actions |
-|---------|-----------|-----|----------------|
-| `packages/langchain-keeperhub/` | Python LangChain & LangGraph | Native SDK | 31 tools |
-| `packages/langchain-tools/` | TypeScript LangChain & LangGraph | Native SDK | 24 tools |
-| `packages/elizaos-plugin/` | ElizaOS | Native plugin | 19 actions + 2 providers + 1 evaluator |
-| `packages/openclaw-adapter-langchain/` | OpenClaw | Wraps LangChain SDK → OpenClaw tools | 24 tools via our SDK |
-| `packages/openclaw-adapter-elizaos/` | OpenClaw | `@elizaos/openclaw-adapter` → our ElizaOS plugin | 19 actions via our SDK |
-| `packages/openclaw-skill/` | OpenClaw | SKILL.md → direct KH REST API | All 396 actions |
-| `packages/hermes-skill/` | Hermes (Nous Research) | SKILL.md → KH MCP server | 20+ MCP tools |
-
-**OpenClaw gets 3 integration paths** — pick the one that fits your agent:
-- **`openclaw-adapter-langchain`** — full SDK, 24 tools, type-safe, testnetOnly guard ← recommended
-- **`openclaw-adapter-elizaos`** — 19 ElizaOS actions via `@elizaos/openclaw-adapter`
-- **`openclaw-skill`** — lightweight SKILL.md, calls KH REST API directly (no SDK dependency)
+| Package | Framework | Tools / Actions |
+|---------|-----------|----------------|
+| `keeperhub-langchain` (PyPI) | Python LangChain & LangGraph | 24 tools |
+| `@ethglobal-openagent/langchain-keeperhub` (npm) | TypeScript LangChain & LangGraph | 25 tools |
+| `@ethglobal-openagent/elizaos-keeperhub` (npm) | ElizaOS | 17 actions + 2 context providers |
+| `@ethglobal-openagent/openclaw-keeperhub` (npm) | OpenClaw | 25 LangChain tools |
+| `@ethglobal-openagent/openclaw-eliza-keeperhub` (npm) | OpenClaw | 17 ElizaOS actions |
 
 ### Showcase Website
 
-`keeperhub-agent-sdk/` — a live Next.js demo with 4 interactive examples showing every integration in action.
+`keeperhub-agent-sdk/` — a live Next.js demo with 5 interactive examples (including OpenClaw) showing every integration in action.
 
 ---
 

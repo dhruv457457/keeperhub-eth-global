@@ -119,35 +119,70 @@ class WalletBalanceTool(BaseTool):
 
     async def _arun(self, chain_id: int | None = None) -> str:  # type: ignore[override]
         try:
-            # /api/user/wallet/balances returns 500 (server Prometheus bug)
-            # Use /api/user/wallet for wallet info + /api/user/wallet/tokens for token list
+            # /api/user/wallet/tokens always returns {tokens:[]} — broken endpoint
+            # /api/user/wallet/balances is the correct endpoint with real native + token balances
             wallet = await self.client.get("/api/user/wallet")  # type: ignore[attr-defined]
             wallet_addr = wallet.get("walletAddress") if isinstance(wallet, dict) else None
 
-            # Get token list (may be empty but doesn't crash)
+            # Get real balances from correct endpoint
+            chain_balances: list = []
             bal_list: list = []
             try:
-                tokens_resp = await self.client.get("/api/user/wallet/tokens")  # type: ignore[attr-defined]
-                bal_list = tokens_resp.get("tokens", []) if isinstance(tokens_resp, dict) else []
+                bal_resp = await self.client.get("/api/user/wallet/balances")  # type: ignore[attr-defined]
+                chain_balances = bal_resp.get("balances", []) if isinstance(bal_resp, dict) else []
+                # Flatten into token list for backward compat
+                for chain in chain_balances:
+                    cid = chain.get("chainId")
+                    native_bal = chain.get("nativeBalance") or chain.get("nativeBal", "0")
+                    if float(native_bal or 0) > 0:
+                        bal_list.append({
+                            "chainId": cid,
+                            "symbol": chain.get("symbol"),
+                            "balance": native_bal,
+                            "isNative": True,
+                        })
+                    for tok in (chain.get("tokens") or chain.get("supportedTokens") or []):
+                        if float(tok.get("balance", 0) or 0) > 0:
+                            bal_list.append({
+                                "chainId": cid,
+                                "symbol": tok.get("symbol"),
+                                "balance": tok.get("balance"),
+                                "address": tok.get("tokenAddress"),
+                            })
             except Exception:
-                pass  # tokens endpoint may be empty
+                pass
 
-            # Find USDC balances for payment readiness
+            # Filter by chain_id if requested
+            if chain_id:
+                bal_list = [b for b in bal_list if str(b.get("chainId")) == str(chain_id)]
+                chain_balances = [c for c in chain_balances if str(c.get("chainId")) == str(chain_id)]
+
+            # Find USDC on Base and USDC.e on Tempo
+            base_chain = next((c for c in chain_balances if str(c.get("chainId")) == "8453"), {})
+            base_tokens = base_chain.get("tokens") or base_chain.get("supportedTokens") or []
             usdc_base = next(
-                (b for b in bal_list
-                 if isinstance(b, dict) and b.get("address", "").lower() == _BASE_USDC),
-                None
+                (t for t in base_tokens if t.get("tokenAddress", "").lower() == _BASE_USDC), None
             )
+            tempo_chain = next((c for c in chain_balances if str(c.get("chainId")) == "4217"), {})
+            tempo_tokens = tempo_chain.get("tokens") or tempo_chain.get("supportedTokens") or []
             usdc_tempo = next(
-                (b for b in bal_list
-                 if isinstance(b, dict) and b.get("address", "").lower() == _TEMPO_USDCE),
-                None
+                (t for t in tempo_tokens if t.get("tokenAddress", "").lower() == _TEMPO_USDCE), None
             )
 
             return json.dumps({
                 "ok": True,
                 "wallet_address": wallet_addr,
                 "balances": bal_list[:20],
+                "chains": [
+                    {
+                        "chainId": c.get("chainId"),
+                        "chain": c.get("chainName"),
+                        "native_balance": c.get("nativeBalance") or c.get("nativeBal", "0"),
+                        "symbol": c.get("symbol"),
+                    }
+                    for c in chain_balances
+                    if float(c.get("nativeBalance") or c.get("nativeBal") or 0) > 0
+                ],
                 "payment_readiness": {
                     "x402_base_usdc": {
                         "balance": usdc_base.get("balance", "0") if usdc_base else "0",

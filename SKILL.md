@@ -1,7 +1,7 @@
 ---
 name: keeperhub
 description: Execute onchain DeFi operations, blockchain transactions, smart contract calls, ENS resolution, and workflow automation via KeeperHub. Use when the user wants to transfer tokens, read/write contracts, interact with Aave/Uniswap/Lido/Compound, check wallet balance, manage KeeperHub workflows, swap tokens, bridge assets via Chainlink CCIP, or automate any onchain task across 19 blockchains.
-version: 1.0.0
+version: 1.1.0
 license: MIT
 author: Dhruv Pancholi
 homepage: https://github.com/dhruv457457/keeperhub-eth-global
@@ -51,7 +51,7 @@ pip install keeperhub-langchain
 npm install @ethglobal-openagent/langchain-keeperhub
 
 # For ElizaOS
-npm install @keeperhub/elizaos
+npm install @ethglobal-openagent/elizaos-keeperhub
 ```
 
 ## Set Up Your Agent in 5 Minutes
